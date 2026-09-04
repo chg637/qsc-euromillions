@@ -1,0 +1,54 @@
+name: QSC EuroMillions — tirage du jour
+
+on:
+  schedule:
+    # Mardi et vendredi 06:10 UTC (08:10 Paris) : le tirage précédent est dans l'API,
+    # le rapport du jour est prêt avant la tâche cloud de 12:05.
+    - cron: "10 6 * * 2,5"
+  workflow_dispatch:
+    inputs:
+      jackpot_meur:
+        description: "Jackpot officiel du prochain tirage en M€ (vide = estimation API)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qsc
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tests unitaires
+        run: python3 test_qsc_v37.py
+
+      - name: Refresh CSV depuis l'API
+        run: python3 update_master.py
+
+      - name: Pipeline QSC (rapport, registre, checklist)
+        env:
+          JACKPOT_MEUR: ${{ github.event.inputs.jackpot_meur }}
+        run: python3 run_qsc.py
+
+      - name: Commit des résultats
+        run: |
+          git config user.name "qsc-bot"
+          git config user.email "qsc-bot@users.noreply.github.com"
+          git add euromillions_MASTER.csv output/
+          if git diff --cached --quiet; then
+            echo "rien à committer"
+          else
+            git commit -m "QSC run $(date -u +%F) — $(python3 -c "import json;d=json.load(open('output/latest.json'));print('tirage',d['draw_date'],'·',d['dataset']['n'],'tirages')")"
+            git push
+          fi
