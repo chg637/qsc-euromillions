@@ -11,6 +11,10 @@ on:
         description: "Jackpot officiel du prochain tirage en M€ (vide = estimation API)"
         required: false
         default: ""
+      n_grilles:
+        description: "Plancher du nombre de grilles (vide = règle jackpot seule). Ne peut que relever le nombre, jamais le réduire."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -39,6 +43,7 @@ jobs:
       - name: Pipeline QSC (rapport, registre, checklist)
         env:
           JACKPOT_MEUR: ${{ github.event.inputs.jackpot_meur }}
+          N_GRILLES: ${{ github.event.inputs.n_grilles }}
         run: python3 run_qsc.py
 
       - name: Commit des résultats

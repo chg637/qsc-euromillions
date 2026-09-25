@@ -131,6 +131,11 @@ def build_html(R):
                 or '<tr><td colspan="5" class="k">aucune grille à rapprocher ce run</td></tr>')
     chk = R["checklist"]
     jp = R["jackpot"]
+    plancher_html = ""
+    if R.get("n_grilles_plancher"):
+        plancher_html = ('<p class="k">Nombre de grilles relevé par l&rsquo;input <span class="mono">n_grilles</span> = '
+                         f'{R["n_grilles_plancher"]} ; la règle jackpot seule en donnait {R["n_grilles_regle_jackpot"]}. '
+                         'Le plancher change combien on joue, jamais la probabilité de gain de chaque grille.</p>')
     alerts = "".join(f"<li>{H.escape(a)}</li>" for a in R["dataset"]["alertes"]) or "<li>aucune alerte</li>"
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>QSC EuroMillions v{q.VERSION} — tirage du {R['draw_date']}</title><style>{CSS}</style></head><body>
@@ -139,6 +144,7 @@ def build_html(R):
 <div class="warn">⚠️ {q.DISCLAIMER}</div>
 
 <h2>Grilles proposées — {len(R['grilles'])} (jackpot {jp['meur']:.0f} M€, {jp['source']} : {H.escape(jp['note'])})</h2>
+{plancher_html}
 <div class="grid">{cards}</div>
 <p class="k">{q.EQUIVALENCE}</p>
 <p class="k">Consensus pondérée : {H.escape(R['consensus']['message'])}</p>
@@ -180,7 +186,9 @@ def build_chat(R):
     c = R["registre"]["cumul"]
     return (f"⚠️ {q.DISCLAIMER}\n\n"
             f"QSC EuroMillions v{q.VERSION} — tirage du {R['draw_date_fr']} · {R['dataset']['n']} tirages · seed {R['seed']}\n"
-            f"Jackpot {R['jackpot']['meur']:.0f} M€ ({R['jackpot']['source']}) → {len(R['grilles'])} grilles\n\n{g}\n\n"
+            f"Jackpot {R['jackpot']['meur']:.0f} M€ ({R['jackpot']['source']}) → {len(R['grilles'])} grilles"
+            + (f" (règle jackpot : {R['n_grilles_regle_jackpot']} ; plancher n_grilles = {R['n_grilles_plancher']})"
+               if R.get("n_grilles_plancher") else "") + f"\n\n{g}\n\n"
             f"{q.EQUIVALENCE}\n"
             f"Backtest : {R['backtest']['verdict']}\n"
             f"Cumul protocole vs hasard : {c['match_nums']} numéros trouvés sur {c['grilles']} grilles (attendu {c['attendu_nums']}, écart {c['ecart_nums']:+}).\n\n"
@@ -194,6 +202,8 @@ def main():
     ap.add_argument("--out", default="output")
     ap.add_argument("--jackpot", type=float, default=os.environ.get("JACKPOT_MEUR") or None)
     ap.add_argument("--today", default=None)
+    ap.add_argument("--n-grilles", type=int, default=int(os.environ.get("N_GRILLES") or 0),
+                    help="plancher du nombre de grilles ; ne peut que relever la règle jackpot")
     ap.add_argument("--n-sim", type=int, default=5000)
     ap.add_argument("--mc", type=int, default=50_000)
     a = ap.parse_args()
@@ -239,7 +249,7 @@ def main():
 
     # jackpot / nombre de grilles
     jp = estimate_jackpot(api_meta, a.jackpot)
-    n = q.n_grids(jp["meur"])
+    n = q.n_grids(jp["meur"], plancher=a.n_grilles)
 
     # grilles
     order = q.rank_selectors(bt, ineligible_first=prev_first)
@@ -250,6 +260,12 @@ def main():
         g = q.best_grid(model, draws, avoid=avoid, max_ov=2, min_as=60)
         if g is None:
             g = q.best_grid(model, draws, pool=22, avoid=avoid, max_ov=2, min_as=50)
+        if g is None:  # plus n est grand, plus la contrainte de recouvrement serre
+            g = q.best_grid(model, draws, pool=28, avoid=avoid, max_ov=3, min_as=40)
+        if g is None:
+            print(f"Aucune grille admissible pour le porteur {model} (grille {i+1}/{n}) : "
+                  f"réduis le plancher n_grilles.", file=sys.stderr)
+            sys.exit(5)
         avoid.append(g)
         sm = star_order[i % len(star_order)]
         stars = q.stars_for(draws, sm, pool=12)
@@ -264,17 +280,23 @@ def main():
                  "message": (f"{fmt_nums(cons)} (pondérée sur les seuls modèles significatifs)" if cons else
                              "non calculable ce jour : aucun modèle ne surperforme le hasard après correction — la consensus dégénère volontairement.")}
 
-    # registre : ajout des grilles du jour (idempotent)
-    if not any(r["draw_date"] == draw_iso for r in rows):
-        for g in grids:
-            rows.append({"run_date": today.isoformat(), "draw_date": draw_iso, "grid": g["id"], "model": g["model"],
-                         "nums": "-".join(map(str, g["nums"])), "stars": "-".join(map(str, g["stars"])), "seed": seed,
-                         "real_nums": "", "real_stars": "", "match_nums": "", "match_stars": ""})
+    # registre : ajout des grilles du jour (idempotent, par (tirage, n° de grille)).
+    # Append-only : une grille déjà inscrite n'est jamais réécrite — un re-run avec
+    # un plancher plus haut ne fait que compléter les grilles manquantes.
+    deja = {(r["draw_date"], str(r["grid"])) for r in rows}
+    for g in grids:
+        if (draw_iso, str(g["id"])) in deja:
+            continue
+        rows.append({"run_date": today.isoformat(), "draw_date": draw_iso, "grid": g["id"], "model": g["model"],
+                     "nums": "-".join(map(str, g["nums"])), "stars": "-".join(map(str, g["stars"])), "seed": seed,
+                     "real_nums": "", "real_stars": "", "match_nums": "", "match_stars": ""})
     save_registre(reg_path, rows)
 
     slim = lambda d: {k: {kk: vv for kk, vv in v.items() if kk != "points"} for k, v in d.items()}
     R = {"version": q.VERSION, "run_date": today.isoformat(), "draw_date": draw_iso, "draw_date_fr": draw_fr, "seed": seed,
-         "dataset": fp, "jackpot": jp, "n_grilles": n, "porteurs": order, "porteur_precedent_inéligible": prev_first,
+         "dataset": fp, "jackpot": jp, "n_grilles": n,
+         "n_grilles_regle_jackpot": q.n_grids(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
+         "porteurs": order, "porteur_precedent_inéligible": prev_first,
          "grilles": grids, "consensus": consensus,
          "backtest": {"meta": meta, "numeros": slim(bt), "verdict": q.verdict(bt, meta),
                       "etoiles": slim(sb), "etoiles_meta": smeta,

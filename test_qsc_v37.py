@@ -89,6 +89,14 @@ def run():
     pts, exc, pools = q.walk_forward_stars(q.s_freq, synth, burn_in=100, step=50)
     t("walk_forward_stars aligne points/pools", len(pts) == len(exc) == len(pools))
 
+    # --- nombre de grilles / plancher n_grilles
+    t("règle jackpot inchangée à 37,6 M€", q.n_grids(37.6) == 2)
+    t("règle jackpot inchangée à 120 M€", q.n_grids(120) == 3)
+    t("plancher relève 2 -> 5", q.n_grids(37.6, plancher=5) == 5)
+    t("plancher ne réduit jamais", q.n_grids(220, plancher=3) == q.n_grids(220))
+    t("plancher vide = règle seule", q.n_grids(37.6, plancher=0) == q.n_grids(37.6))
+    t("plancher None toléré", q.n_grids(37.6, plancher=None) == 2)
+
     # --- rotation narrative
     order = q.rank_selectors({"A": {"edge": 0.3}, "B": {"edge": 0.2}, "C": {"edge": 0.1}}, ineligible_first="A")
     t("porteur #1 précédent redescend en 2e", order[:2] == ["B", "A"])

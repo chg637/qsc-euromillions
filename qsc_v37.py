@@ -423,8 +423,16 @@ def best_grid(model_name, draws, pool=16, avoid=None, max_ov=2, min_as=60):
 def stars_for(draws, model="Étoiles — lag", pool=12):
     return top2_stars(STAR_CATALOG[model](draws, pool))
 
-def n_grids(jackpot_meur):
-    return 2 + max(0, math.floor((jackpot_meur - 50) / 50))
+def n_grids(jackpot_meur, plancher=0):
+    """Nombre de grilles du run.
+
+    Règle jackpot (inchangée) : 2 + ⌊(jackpot − 50)/50⌋.
+    `plancher` (input `n_grilles` du workflow) ne fait que RELEVER ce nombre ;
+    il ne peut jamais le réduire. La règle historique reste donc lisible dans
+    le registre, et un plancher oublié ne peut pas faire jouer moins de grilles
+    que ce que le jackpot prévoit."""
+    regle = 2 + max(0, math.floor((jackpot_meur - 50) / 50))
+    return max(regle, int(plancher or 0))
 
 def consensus_grid(bt, draws):
     """C4 — dégénère (None) dès qu'aucun modèle n'est significatif après correction.
