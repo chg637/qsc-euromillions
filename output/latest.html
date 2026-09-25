@@ -19,6 +19,7 @@ svg{max-width:100%;height:auto}.foot{color:var(--mut);font-size:12px;margin-top:
 <div class="warn">⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle.</div>
 
 <h2>Grilles proposées — 2 (jackpot 38 M€, estimation : report du jackpot du 2026-09-22 sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur)</h2>
+
 <div class="grid"><div class="card"><div class="k">G1 · porteur : Momentum · étoiles : Étoiles — fenêtres</div><div class="nums">13 16 19 33 44 <b>★ 04 12</b></div><div class="k">somme 125 · pairs 2/5 · bas 3/5 · anti-partage 73/100 · co-gagnants attendus 0.20 · percentile MC 82e <span class="k">(descriptif rétrospectif, sans valeur prédictive)</span></div></div><div class="card"><div class="k">G2 · porteur : Co-occurrence / graphe · étoiles : Étoiles — lag</div><div class="nums">04 17 26 35 39 <b>★ 08 09</b></div><div class="k">somme 121 · pairs 2/5 · bas 2/5 · anti-partage 72/100 · co-gagnants attendus 0.32 · percentile MC 88e <span class="k">(descriptif rétrospectif, sans valeur prédictive)</span></div></div></div>
 <p class="k">Toutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.</p>
 <p class="k">Consensus pondérée : non calculable ce jour : aucun modèle ne surperforme le hasard après correction — la consensus dégénère volontairement.</p>
@@ -47,7 +48,7 @@ svg{max-width:100%;height:auto}.foot{color:var(--mut);font-size:12px;margin-top:
 <div class="card"><div class="k">Meilleure grille</div><div class="nums">2 num.</div></div>
 </div>
 <h2>Rapprochement du run précédent</h2>
-<div class="wrap"><table><tr><th>Tirage</th><th>Grille</th><th>Jouée</th><th>Réel</th><th class="r">Résultat</th></tr><tr><td>2026-09-22</td><td>G1 · Co-occurrence / graphe</td><td class="mono">5-23-26-39-50 ★ 4-12</td><td class="mono">13-14-16-44-50 ★ 10-12</td><td class="r"><b>1</b> num · 1 ét.</td></tr><tr><td>2026-09-22</td><td>G2 · Momentum</td><td class="mono">15-18-22-33-44 ★ 8-9</td><td class="mono">13-14-16-44-50 ★ 10-12</td><td class="r"><b>1</b> num · 0 ét.</td></tr></table></div>
+<div class="wrap"><table><tr><th>Tirage</th><th>Grille</th><th>Jouée</th><th>Réel</th><th class="r">Résultat</th></tr><tr><td colspan="5" class="k">aucune grille à rapprocher ce run</td></tr></table></div>
 
 <h2>Lexique</h2>
 <p class="k"><b>Écart backtesté</b> : matches moyens du top-5 du modèle moins 0,50 (espérance d'une grille aléatoire). <b>IC95%</b> : bootstrap 10 000 tirages des points de test. <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic). <b>Porteur</b> : modèle qui a fourni la grille — un choix de méthode, pas un signal. <b>Anti-partage</b> : impopularité estimée de la grille (proxy UK, distribution FDJ non publiée) — réduit le partage en cas de gain, ne change pas la probabilité de gain. <b>Rotation narrative</b> : le porteur #1 d'un run est inéligible comme #1 au run suivant.</p>

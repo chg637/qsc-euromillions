@@ -19,6 +19,8 @@
   "note": "report du jackpot du 2026-09-22 sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"
  },
  "n_grilles": 2,
+ "n_grilles_regle_jackpot": 2,
+ "n_grilles_plancher": null,
  "porteurs": [
   "Momentum",
   "Co-occurrence / graphe",
@@ -258,34 +260,7 @@
   }
  },
  "registre": {
-  "rapproche": [
-   {
-    "run_date": "2026-09-22",
-    "draw_date": "2026-09-22",
-    "grid": "1",
-    "model": "Co-occurrence / graphe",
-    "nums": "5-23-26-39-50",
-    "stars": "4-12",
-    "seed": "20260922",
-    "real_nums": "13-14-16-44-50",
-    "real_stars": "10-12",
-    "match_nums": "1",
-    "match_stars": "1"
-   },
-   {
-    "run_date": "2026-09-22",
-    "draw_date": "2026-09-22",
-    "grid": "2",
-    "model": "Momentum",
-    "nums": "15-18-22-33-44",
-    "stars": "8-9",
-    "seed": "20260922",
-    "real_nums": "13-14-16-44-50",
-    "real_stars": "10-12",
-    "match_nums": "1",
-    "match_stars": "0"
-   }
-  ],
+  "rapproche": [],
   "cumul": {
    "grilles": 14,
    "match_nums": 8,
