@@ -18,9 +18,9 @@
   "source": "estimation",
   "note": "report du jackpot du 2026-09-22 sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"
  },
- "n_grilles": 2,
+ "n_grilles": 5,
  "n_grilles_regle_jackpot": 2,
- "n_grilles_plancher": null,
+ "n_grilles_plancher": 5,
  "porteurs": [
   "Momentum",
   "Co-occurrence / graphe",
@@ -76,6 +76,75 @@
    "cowinners": 0.315,
    "mc_avg": 0.5189,
    "mc_pct": 88.5
+  },
+  {
+   "id": 3,
+   "model": "Fréquence globale",
+   "nums": [
+    10,
+    19,
+    23,
+    44,
+    50
+   ],
+   "star_model": "Étoiles — fréquence",
+   "stars": [
+    2,
+    3
+   ],
+   "sum": 146,
+   "even": 3,
+   "low": 3,
+   "anti_share": 68.3,
+   "cowinners": 0.18,
+   "mc_avg": 0.5547,
+   "mc_pct": 100.0
+  },
+  {
+   "id": 4,
+   "model": "Chaînes de Markov",
+   "nums": [
+    10,
+    21,
+    29,
+    42,
+    50
+   ],
+   "star_model": "Étoiles — fenêtres",
+   "stars": [
+    4,
+    12
+   ],
+   "sum": 152,
+   "even": 3,
+   "low": 2,
+   "anti_share": 72.6,
+   "cowinners": 0.198,
+   "mc_avg": 0.5482,
+   "mc_pct": 100.0
+  },
+  {
+   "id": 5,
+   "model": "Fenêtres glissantes",
+   "nums": [
+    10,
+    14,
+    30,
+    39,
+    47
+   ],
+   "star_model": "Étoiles — lag",
+   "stars": [
+    8,
+    9
+   ],
+   "sum": 140,
+   "even": 3,
+   "low": 2,
+   "anti_share": 75.2,
+   "cowinners": 0.244,
+   "mc_avg": 0.5083,
+   "mc_pct": 69.4
   }
  ],
  "consensus": {
@@ -278,5 +347,5 @@
   "ok": true,
   "fails": []
  },
- "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v3.7 — tirage du vendredi 25/09/2026 · 1983 tirages · seed 20260925\nJackpot 38 M€ (estimation) → 2 grilles\n\nG1 (Momentum) : 13 16 19 33 44 ★ 04 12\nG2 (Co-occurrence / graphe) : 04 17 26 35 39 ★ 08 09\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.\nBacktest : Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.74) — le choix des porteurs est méthodologique, pas inférentiel.\nCumul protocole vs hasard : 8 numéros trouvés sur 14 grilles (attendu 7.0, écart +1.0).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle."
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v3.7 — tirage du vendredi 25/09/2026 · 1983 tirages · seed 20260925\nJackpot 38 M€ (estimation) → 5 grilles (règle jackpot : 2 ; plancher n_grilles = 5)\n\nG1 (Momentum) : 13 16 19 33 44 ★ 04 12\nG2 (Co-occurrence / graphe) : 04 17 26 35 39 ★ 08 09\nG3 (Fréquence globale) : 10 19 23 44 50 ★ 02 03\nG4 (Chaînes de Markov) : 10 21 29 42 50 ★ 04 12\nG5 (Fenêtres glissantes) : 10 14 30 39 47 ★ 08 09\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.\nBacktest : Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.74) — le choix des porteurs est méthodologique, pas inférentiel.\nCumul protocole vs hasard : 8 numéros trouvés sur 14 grilles (attendu 7.0, écart +1.0).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle."
 }
