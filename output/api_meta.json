@@ -1,19 +1,19 @@
 {
- "fetched_at": "2026-09-22",
+ "fetched_at": "2026-09-25",
  "added": [
-  "2026-09-18"
+  "2026-09-22"
  ],
  "last_draw": {
-  "date": "2026-09-18",
+  "date": "2026-09-22",
   "has_winner": false,
-  "jackpot_eur": 28392426.1,
+  "jackpot_eur": 37642516.9,
   "jackpot_winners": 0
  },
  "fingerprint": {
-  "n": 1982,
+  "n": 1983,
   "premier": "2004-02-13",
-  "dernier": "2026-09-18",
+  "dernier": "2026-09-22",
   "source": "csv+api",
-  "hash": "a3da5be04d60"
+  "hash": "f7af3b618d7a"
  }
 }
