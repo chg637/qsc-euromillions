@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-run_qsc.py — Pipeline QSC v3.7 complet, exécuté par GitHub Actions les jours de tirage.
+run_qsc.py — Pipeline QSC v3.8 complet, exécuté par GitHub Actions les jours de tirage.
 
 Étapes : chargement + intégrité → rapprochement du run précédent (registre append-only)
 → backtest numéros/étoiles (step 1, null exact, max-stat) → diagnostics (chi², Monte-Carlo)
-→ estimation jackpot → rotation narrative → génération des grilles → consensus (stricte)
+→ estimation jackpot → rotation narrative → sélection dans l'univers impopulaire (D1) → consensus (stricte)
 → latest.json / latest.html / history/<date>.json → checklist.
 
 Usage : python3 run_qsc.py [--csv ...] [--out output] [--jackpot 95] [--today 2026-09-08]
@@ -12,7 +12,7 @@ Sortie : code 0 si checklist verte, 4 sinon (le livrable est quand même écrit,
 """
 import argparse, csv, json, os, sys, html as H
 from datetime import date
-import qsc_v37 as q
+import qsc_v38 as q
 
 # ------------------------------------------------------------------ registre
 
@@ -103,6 +103,7 @@ def svg_hist(hist, marks):
     return f'<svg viewBox="0 0 {W} {Hh}" xmlns="http://www.w3.org/2000/svg">{bars}{lines}{axis}</svg>'
 
 def fmt_nums(nums): return " ".join(f"{n:02d}" for n in nums)
+def fmt_int(n): return f"{n:,}".replace(",", "\u202f")
 
 def build_html(R):
     fp, bt, sb = R["dataset"], R["backtest"]["numeros"], R["backtest"]["etoiles"]
@@ -120,7 +121,8 @@ def build_html(R):
         f'<div class="card"><div class="k">G{g["id"]} · porteur : {H.escape(g["model"])} · étoiles : {H.escape(g["star_model"])}</div>'
         f'<div class="nums">{fmt_nums(g["nums"])} <b>★ {g["stars"][0]:02d} {g["stars"][1]:02d}</b></div>'
         f'<div class="k">somme {g["sum"]} · pairs {g["even"]}/5 · bas {g["low"]}/5 · anti-partage {g["anti_share"]:.0f}/100 · '
-        f'co-gagnants attendus {g["cowinners"]:.2f} · percentile MC {g["mc_pct"]:.0f}e <span class="k">(descriptif rétrospectif, sans valeur prédictive)</span></div></div>'
+        f'joueurs attendus ×{g["rel_popularity"]:.2f} vs grille moyenne · co-gagnants attendus {g["cowinners"]:.2f} · '
+        f'percentile MC {g["mc_pct"]:.0f}e <span class="k">(descriptif rétrospectif, sans valeur prédictive)</span></div></div>'
         for g in R["grilles"])
     marks = [(f'G{g["id"]}', g["mc_avg"], "#f5a524") for g in R["grilles"]]
     marks.append(("médiane", R["monte_carlo"]["median"], "#5aa9ff"))
@@ -147,6 +149,7 @@ def build_html(R):
 {plancher_html}
 <div class="grid">{cards}</div>
 <p class="k">{q.EQUIVALENCE}</p>
+<p class="k"><b>Sélection v3.8</b> : univers = les {100*R['selection']['quantile']:.0f} % de grilles les moins populaires ({fmt_int(R['selection']['univers_grilles'])} sur {fmt_int(R['selection']['total_grilles'])}, popularité moyenne ≤ {R['selection']['seuil_gp']:.3f} vs 1,15 pour la grille moyenne, proxy UK), hors motifs sur-joués ; étoiles dans 8-12. Le porteur ne fait que départager à l'intérieur de cet univers. Cela ne change pas la probabilité de gagner, seulement le partage attendu si la grille gagne.</p>
 <p class="k">Consensus pondérée : {H.escape(R['consensus']['message'])}</p>
 
 <h2>Backtest numéros — walk-forward burn-in {R['backtest']['meta']['burn_in']}, step {R['backtest']['meta']['step']}, {R['backtest']['meta']['n_points']} points</h2>
@@ -176,7 +179,7 @@ def build_html(R):
 <div class="wrap"><table><tr><th>Tirage</th><th>Grille</th><th>Jouée</th><th>Réel</th><th class="r">Résultat</th></tr>{rec_html}</table></div>
 
 <h2>Lexique</h2>
-<p class="k"><b>Écart backtesté</b> : matches moyens du top-5 du modèle moins 0,50 (espérance d'une grille aléatoire). <b>IC95%</b> : bootstrap 10 000 tirages des points de test. <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic). <b>Porteur</b> : modèle qui a fourni la grille — un choix de méthode, pas un signal. <b>Anti-partage</b> : impopularité estimée de la grille (proxy UK, distribution FDJ non publiée) — réduit le partage en cas de gain, ne change pas la probabilité de gain. <b>Rotation narrative</b> : le porteur #1 d'un run est inéligible comme #1 au run suivant.</p>
+<p class="k"><b>Écart backtesté</b> : matches moyens du top-5 du modèle moins 0,50 (espérance d'une grille aléatoire). <b>IC95%</b> : bootstrap 10 000 tirages des points de test. <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic). <b>Porteur</b> : modèle qui départage les grilles à l'intérieur de l'univers impopulaire — un choix de méthode, pas un signal. <b>Joueurs attendus ×k</b> : facteur multiplicatif du nombre de joueurs sur cette grille par rapport à un joueur uniforme (popularités normalisées, étoiles incluses). <b>Anti-partage</b> : impopularité estimée de la grille (proxy UK, distribution FDJ non publiée) — réduit le partage en cas de gain, ne change pas la probabilité de gain. <b>Rotation narrative</b> : le porteur #1 d'un run est inéligible comme #1 au run suivant.</p>
 <div class="warn">⚠️ {q.DISCLAIMER}</div>
 <div class="foot">QSC v{q.VERSION} · généré par GitHub Actions · source données : API pedromealha + CSV maître · checklist : {'OK' if chk['ok'] else 'KO — ' + '; '.join(chk['fails'])}</div>
 </body></html>"""
@@ -190,6 +193,7 @@ def build_chat(R):
             + (f" (règle jackpot : {R['n_grilles_regle_jackpot']} ; plancher n_grilles = {R['n_grilles_plancher']})"
                if R.get("n_grilles_plancher") else "") + f"\n\n{g}\n\n"
             f"{q.EQUIVALENCE}\n"
+            f"Sélection : univers des {100*R['selection']['quantile']:.0f} % de grilles les moins populaires (proxy UK), étoiles 8-12 ; le porteur départage, il ne prédit pas.\n"
             f"Backtest : {R['backtest']['verdict']}\n"
             f"Cumul protocole vs hasard : {c['match_nums']} numéros trouvés sur {c['grilles']} grilles (attendu {c['attendu_nums']}, écart {c['ecart_nums']:+}).\n\n"
             f"⚠️ {q.DISCLAIMER}")
@@ -254,27 +258,34 @@ def main():
     # grilles
     order = q.rank_selectors(bt, ineligible_first=prev_first)
     star_order = sorted(sb, key=lambda k: -sb[k]["edge"])
-    grids, avoid = [], []
+    universe, gp_thr, n_total = q.impopular_universe()
+    star_univ = q.star_universe(12)
+    grids, avoid, avoid_stars = [], [], []
     for i in range(n):
         model = order[i % len(order)]
-        g = q.best_grid(model, draws, avoid=avoid, max_ov=2, min_as=60)
-        if g is None:
-            g = q.best_grid(model, draws, pool=22, avoid=avoid, max_ov=2, min_as=50)
-        if g is None:  # plus n est grand, plus la contrainte de recouvrement serre
-            g = q.best_grid(model, draws, pool=28, avoid=avoid, max_ov=3, min_as=40)
+        g = q.best_grid(model, draws, avoid=avoid, max_ov=2, universe=universe)
+        if g is None:  # univers épuisé par la contrainte de recouvrement (n très grand)
+            g = q.best_grid(model, draws, avoid=avoid, max_ov=3, universe=universe)
         if g is None:
             print(f"Aucune grille admissible pour le porteur {model} (grille {i+1}/{n}) : "
                   f"réduis le plancher n_grilles.", file=sys.stderr)
             sys.exit(5)
         avoid.append(g)
         sm = star_order[i % len(star_order)]
-        stars = q.stars_for(draws, sm, pool=12)
+        stars = q.best_stars(sm, draws, avoid=avoid_stars, pool=12, universe=star_univ)
+        avoid_stars.append(stars)
         avg, pct = q.mc_percentile(g, draws, mc)
         grids.append({"id": i+1, "model": model, "nums": list(g), "star_model": sm, "stars": list(stars),
                       "sum": sum(g), "even": sum(1 for x in g if x % 2 == 0), "low": sum(1 for x in g if x <= 25),
                       "anti_share": round(q.anti_share_score(g, stars), 1),
-                      "cowinners": round(q.expected_cowinners(g), 3),
+                      "rel_popularity": round(q.relative_popularity(g, stars), 3),
+                      "cowinners": round(q.expected_cowinners(g, stars), 3),
                       "mc_avg": round(avg, 4), "mc_pct": round(pct, 1)})
+    selection = {"regle": "univers = décile le moins populaire des C(50,5) hors motifs pénalisés ; "
+                          "le porteur départage à l'intérieur, il n'élargit jamais l'univers",
+                 "quantile": q.IMPOP_QUANTILE, "univers_grilles": len(universe), "total_grilles": n_total,
+                 "seuil_gp": round(gp_thr, 4), "etoiles_univers": [list(p) for p in star_univ],
+                 "max_recouvrement": 2}
     cons = q.consensus_grid(bt, draws)
     consensus = {"grid": list(cons) if cons else None,
                  "message": (f"{fmt_nums(cons)} (pondérée sur les seuls modèles significatifs)" if cons else
@@ -297,6 +308,7 @@ def main():
          "dataset": fp, "jackpot": jp, "n_grilles": n,
          "n_grilles_regle_jackpot": q.n_grids(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
          "porteurs": order, "porteur_precedent_inéligible": prev_first,
+         "selection": selection,
          "grilles": grids, "consensus": consensus,
          "backtest": {"meta": meta, "numeros": slim(bt), "verdict": q.verdict(bt, meta),
                       "etoiles": slim(sb), "etoiles_meta": smeta,
