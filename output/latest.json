@@ -1,44 +1,118 @@
 {
- "version": "3.7",
- "run_date": "2026-10-02",
- "draw_date": "2026-10-02",
- "draw_date_fr": "vendredi 02/10/2026",
- "seed": 20261002,
+ "version": "3.8",
+ "run_date": "2026-10-06",
+ "draw_date": "2026-10-06",
+ "draw_date_fr": "mardi 06/10/2026",
+ "seed": 20261006,
  "dataset": {
-  "n": 1985,
+  "n": 1986,
   "premier": "2004-02-13",
-  "dernier": "2026-09-29",
+  "dernier": "2026-10-02",
   "source": "csv",
-  "hash": "85b8ee6f2d0c",
+  "hash": "afd90c2327d8",
   "integrite": true,
   "alertes": []
  },
  "jackpot": {
   "meur": 17.0,
   "source": "estimation",
-  "note": "report du jackpot du 2026-09-29 sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"
+  "note": "jackpot remis à ~17 M€ après un gagnant (ou API muette)"
  },
  "n_grilles": 2,
  "n_grilles_regle_jackpot": 2,
  "n_grilles_plancher": null,
  "porteurs": [
-  "Momentum",
   "Co-occurrence / graphe",
+  "Momentum",
   "Fréquence globale",
   "Chaînes de Markov",
   "Fenêtres glissantes",
   "Lag / retard normalisé"
  ],
- "porteur_precedent_inéligible": "Co-occurrence / graphe",
+ "porteur_precedent_inéligible": "Momentum",
+ "selection": {
+  "regle": "univers = décile le moins populaire des C(50,5) hors motifs pénalisés ; le porteur départage à l'intérieur, il n'élargit jamais l'univers",
+  "quantile": 0.1,
+  "univers_grilles": 194616,
+  "total_grilles": 2118760,
+  "seuil_gp": 0.8859,
+  "etoiles_univers": [
+   [
+    8,
+    9
+   ],
+   [
+    8,
+    10
+   ],
+   [
+    8,
+    11
+   ],
+   [
+    8,
+    12
+   ],
+   [
+    9,
+    10
+   ],
+   [
+    9,
+    11
+   ],
+   [
+    9,
+    12
+   ],
+   [
+    10,
+    11
+   ],
+   [
+    10,
+    12
+   ],
+   [
+    11,
+    12
+   ]
+  ],
+  "max_recouvrement": 2
+ },
  "grilles": [
   {
    "id": 1,
+   "model": "Co-occurrence / graphe",
+   "nums": [
+    23,
+    42,
+    44,
+    45,
+    50
+   ],
+   "star_model": "Étoiles — fréquence",
+   "stars": [
+    9,
+    12
+   ],
+   "sum": 204,
+   "even": 3,
+   "low": 1,
+   "anti_share": 99.1,
+   "rel_popularity": 0.06,
+   "cowinners": 0.011,
+   "mc_avg": 0.5519,
+   "mc_pct": 100.0
+  },
+  {
+   "id": 2,
    "model": "Momentum",
    "nums": [
-    13,
-    16,
-    23,
-    28,
+    12,
+    33,
+    37,
+    39,
     44
    ],
    "star_model": "Étoiles — fenêtres",
@@ -46,36 +120,14 @@
     10,
     12
    ],
-   "sum": 124,
-   "even": 3,
-   "low": 3,
-   "anti_share": 70.7,
-   "cowinners": 0.332,
-   "mc_avg": 0.5249,
-   "mc_pct": 94.4
-  },
-  {
-   "id": 2,
-   "model": "Co-occurrence / graphe",
-   "nums": [
-    10,
-    19,
-    23,
-    39,
-    50
-   ],
-   "star_model": "Étoiles — lag",
-   "stars": [
-    5,
-    9
-   ],
-   "sum": 141,
+   "sum": 165,
    "even": 2,
-   "low": 3,
-   "anti_share": 70.3,
-   "cowinners": 0.232,
-   "mc_avg": 0.5395,
-   "mc_pct": 99.6
+   "low": 1,
+   "anti_share": 88.7,
+   "rel_popularity": 0.146,
+   "cowinners": 0.026,
+   "mc_avg": 0.5086,
+   "mc_pct": 69.5
   }
  ],
  "consensus": {
@@ -86,216 +138,216 @@
   "meta": {
    "burn_in": 150,
    "step": 1,
-   "n_points": 1835,
+   "n_points": 1836,
    "n_models": 6,
    "n_sim": 5000,
-   "best_edge": 0.01335149863760221,
-   "p_global": 0.6972605478904219,
-   "null_max_q95": 0.03678474114441417
+   "best_edge": 0.013616557734204782,
+   "p_global": 0.7060587882423516,
+   "null_max_q95": 0.03649237472766884
   },
   "numeros": {
    "Fréquence globale": {
-    "n": 1835,
-    "avg": 0.4997275204359673,
-    "edge": -0.00027247956403270157,
+    "n": 1836,
+    "avg": 0.49945533769063183,
+    "edge": -0.0005446623093681713,
     "ci": [
-     -0.029700272479564027,
-     0.029700272479564083
+     -0.030501089324618758,
+     0.028867102396514133
     ],
-    "p_raw": 0.5130973805238952,
-    "p_adj": 0.9850029994001199,
+    "p_raw": 0.5108978204359128,
+    "p_adj": 0.9852029594081184,
     "significant": false
    },
    "Lag / retard normalisé": {
-    "n": 1835,
-    "avg": 0.4822888283378747,
-    "edge": -0.017711171662125325,
+    "n": 1836,
+    "avg": 0.4820261437908497,
+    "edge": -0.01797385620915032,
     "ci": [
-     -0.04713896457765665,
-     0.011171662125340598
+     -0.04793028322440085,
+     0.01089324618736387
     ],
-    "p_raw": 0.8830233953209358,
+    "p_raw": 0.871625674865027,
     "p_adj": 0.9998000399920016,
     "significant": false
    },
    "Fenêtres glissantes": {
-    "n": 1835,
-    "avg": 0.4871934604904632,
-    "edge": -0.012806539509536807,
+    "n": 1836,
+    "avg": 0.4880174291938998,
+    "edge": -0.011982570806100212,
     "ci": [
-     -0.04223433242506813,
-     0.01662125340599452
+     -0.04139433551198257,
+     0.017973856209150374
     ],
-    "p_raw": 0.8110377924415118,
+    "p_raw": 0.7810437912417516,
     "p_adj": 0.9998000399920016,
     "significant": false
    },
    "Momentum": {
-    "n": 1835,
-    "avg": 0.5133514986376022,
-    "edge": 0.01335149863760221,
+    "n": 1836,
+    "avg": 0.5136165577342048,
+    "edge": 0.013616557734204782,
     "ci": [
-     -0.015531335149863768,
-     0.04223433242506813
+     -0.015250544662309351,
+     0.042483660130718914
     ],
-    "p_raw": 0.1853629274145171,
-    "p_adj": 0.6972605478904219,
+    "p_raw": 0.1867626474705059,
+    "p_adj": 0.7060587882423516,
     "significant": false
    },
    "Co-occurrence / graphe": {
-    "n": 1835,
-    "avg": 0.5040871934604905,
-    "edge": 0.004087193460490468,
+    "n": 1836,
+    "avg": 0.5043572984749455,
+    "edge": 0.004357298474945481,
     "ci": [
-     -0.02588555858310626,
-     0.033514986376021794
+     -0.02614379084967322,
+     0.03376906318082784
     ],
-    "p_raw": 0.3827234553089382,
-    "p_adj": 0.9454109178164367,
+    "p_raw": 0.39432113577284544,
+    "p_adj": 0.9448110377924415,
     "significant": false
    },
    "Chaînes de Markov": {
-    "n": 1835,
-    "avg": 0.49700272479564034,
-    "edge": -0.0029972752043596618,
+    "n": 1836,
+    "avg": 0.49727668845315903,
+    "edge": -0.0027233115468409674,
     "ci": [
-     -0.03188010899182564,
-     0.02588555858310626
+     -0.0315904139433551,
+     0.026688453159041448
     ],
-    "p_raw": 0.5684863027394521,
-    "p_adj": 0.9926014797040592,
+    "p_raw": 0.5864827034593081,
+    "p_adj": 0.9938012397520496,
     "significant": false
    }
   },
-  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.70) — le choix des porteurs est méthodologique, pas inférentiel.",
+  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.71) — le choix des porteurs est méthodologique, pas inférentiel.",
   "etoiles": {
    "Étoiles — fréquence": {
-    "n": 1835,
-    "avg": 0.3542234332425068,
-    "edge": -0.002196350425233238,
+    "n": 1836,
+    "avg": 0.37745098039215685,
+    "edge": 0.021043771043771066,
     "ci": [
-     -0.02531032394792611,
-     0.021330470921751596
+     -0.002932373847406506,
+     0.04472832904205456
     ],
-    "p_raw": 0.5576884623075385,
-    "p_adj": 0.9164167166566687,
+    "p_raw": 0.03279344131173765,
+    "p_adj": 0.10917816436712657,
     "significant": false
    },
    "Étoiles — lag": {
-    "n": 1835,
-    "avg": 0.3683923705722071,
-    "edge": 0.011972586904467035,
+    "n": 1836,
+    "avg": 0.3687363834422658,
+    "edge": 0.012329174093879996,
     "ci": [
-     -0.011515701978917218,
-     0.03636914100129361
+     -0.011801016702977469,
+     0.036904997689311436
     ],
-    "p_raw": 0.15096980603879223,
-    "p_adj": 0.3867226554689062,
+    "p_raw": 0.14497100579884023,
+    "p_adj": 0.382123575284943,
     "significant": false
    },
    "Étoiles — fenêtres": {
-    "n": 1835,
-    "avg": 0.3749318801089918,
-    "edge": 0.018512096441251777,
+    "n": 1836,
+    "avg": 0.3720043572984749,
+    "edge": 0.015597147950089148,
     "ci": [
-     -0.00528995678859437,
-     0.04223708474389676
+     -0.008136924803591449,
+     0.039468761690983935
     ],
-    "p_raw": 0.054789042191561686,
-    "p_adj": 0.16036792641471706,
+    "p_raw": 0.09078184363127374,
+    "p_adj": 0.260747850429914,
     "significant": false
    }
   },
   "etoiles_meta": {
-   "n_points": 1835,
+   "n_points": 1836,
    "n_models": 3,
-   "best_edge": 0.018512096441251777,
-   "p_global": 0.16036792641471706
+   "best_edge": 0.021043771043771066,
+   "p_global": 0.10917816436712657
   },
   "etoiles_verdict": "Aucun modèle étoiles ne se distingue du hasard : choix méthodologique par rotation."
  },
  "chi2": {
-  "stat": 54.08,
-  "p": 0.287
+  "stat": 53.92,
+  "p": 0.292
  },
  "monte_carlo": {
   "n": 50000,
-  "median": 0.5002518891687657,
+  "median": 0.500503524672709,
   "hist": {
-   "lo": 0.4387909319899244,
-   "hi": 0.5551637279596977,
-   "width": 0.003879093198992443,
+   "lo": 0.4415911379657603,
+   "hi": 0.5599194360523666,
+   "width": 0.003944276602886876,
    "counts": [
-    6,
-    9,
-    33,
-    62,
-    125,
-    263,
-    359,
-    683,
-    1088,
-    1354,
-    2198,
-    2807,
-    3579,
-    3643,
-    4775,
-    4932,
-    4313,
-    4797,
-    4225,
-    3555,
-    2249,
-    1985,
-    1308,
-    697,
-    499,
-    275,
-    110,
-    52,
-    14,
-    5
+    15,
+    26,
+    71,
+    124,
+    239,
+    351,
+    574,
+    967,
+    1468,
+    2027,
+    2841,
+    3029,
+    4072,
+    4588,
+    5132,
+    5033,
+    4756,
+    3746,
+    3459,
+    2701,
+    1944,
+    1317,
+    726,
+    413,
+    221,
+    99,
+    40,
+    18,
+    2,
+    1
    ]
   }
  },
  "registre": {
   "rapproche": [
    {
-    "run_date": "2026-09-29",
-    "draw_date": "2026-09-29",
+    "run_date": "2026-10-02",
+    "draw_date": "2026-10-02",
     "grid": "1",
-    "model": "Co-occurrence / graphe",
-    "nums": "13-19-29-44-48",
+    "model": "Momentum",
+    "nums": "13-16-23-28-44",
     "stars": "10-12",
-    "seed": "20260929",
-    "real_nums": "4-7-12-31-44",
-    "real_stars": "8-11",
-    "match_nums": "1",
-    "match_stars": "0"
+    "seed": "20261002",
+    "real_nums": "7-8-10-22-35",
+    "real_stars": "2-10",
+    "match_nums": "0",
+    "match_stars": "1"
    },
    {
-    "run_date": "2026-09-29",
-    "draw_date": "2026-09-29",
+    "run_date": "2026-10-02",
+    "draw_date": "2026-10-02",
     "grid": "2",
-    "model": "Momentum",
-    "nums": "13-16-22-33-44",
-    "stars": "8-9",
-    "seed": "20260929",
-    "real_nums": "4-7-12-31-44",
-    "real_stars": "8-11",
+    "model": "Co-occurrence / graphe",
+    "nums": "10-19-23-39-50",
+    "stars": "5-9",
+    "seed": "20261002",
+    "real_nums": "7-8-10-22-35",
+    "real_stars": "2-10",
     "match_nums": "1",
-    "match_stars": "1"
+    "match_stars": "0"
    }
   ],
   "cumul": {
-   "grilles": 21,
-   "match_nums": 10,
-   "attendu_nums": 10.5,
+   "grilles": 23,
+   "match_nums": 11,
+   "attendu_nums": 11.5,
    "ecart_nums": -0.5,
-   "match_stars": 11,
-   "attendu_stars": 7.0,
-   "ecart_stars": 4.0,
+   "match_stars": 12,
+   "attendu_stars": 7.67,
+   "ecart_stars": 4.33,
    "meilleur": 2
   }
  },
@@ -305,5 +357,5 @@
   "ok": true,
   "fails": []
  },
- "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v3.7 — tirage du vendredi 02/10/2026 · 1985 tirages · seed 20261002\nJackpot 17 M€ (estimation) → 2 grilles\n\nG1 (Momentum) : 13 16 23 28 44 ★ 10 12\nG2 (Co-occurrence / graphe) : 10 19 23 39 50 ★ 05 09\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.\nBacktest : Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.70) — le choix des porteurs est méthodologique, pas inférentiel.\nCumul protocole vs hasard : 10 numéros trouvés sur 21 grilles (attendu 10.5, écart -0.5).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle."
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v3.8 — tirage du mardi 06/10/2026 · 1986 tirages · seed 20261006\nJackpot 17 M€ (estimation) → 2 grilles\n\nG1 (Co-occurrence / graphe) : 23 42 44 45 50 ★ 09 12\nG2 (Momentum) : 12 33 37 39 44 ★ 10 12\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.\nSélection : univers des 10 % de grilles les moins populaires (proxy UK), étoiles 8-12 ; le porteur départage, il ne prédit pas.\nBacktest : Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.71) — le choix des porteurs est méthodologique, pas inférentiel.\nCumul protocole vs hasard : 11 numéros trouvés sur 23 grilles (attendu 11.5, écart -0.5).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (~−1,42 €/grille). Les edges backtestés et percentiles Monte-Carlo peuvent être du bruit statistique — méthodologie documentée, pas un oracle."
 }
