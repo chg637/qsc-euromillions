@@ -10,7 +10,7 @@ Cette phrase ouvre **et** ferme ta réponse (2 occurrences minimum), et figure e
 
 ## §DONNÉES — sources, dans cet ordre
 
-1. `https://raw.githubusercontent.com/chg637/qsc-euromillions/main/loto/output/latest.json` — résultat du run du jour (grilles, backtests, verdicts, registre, `chat_summary`).
+1. `https://raw.githubusercontent.com/chg637/qsc-euromillions/main/loto/output/latest.json` (404 tant que la PR #3 n'est pas mergée sur main → essayer la branche `qsc-loto` à la place de `main`, puis §FALLBACK) — résultat du run du jour (grilles, backtests, verdicts, registre, `chat_summary`).
 2. `.../loto/output/registre.csv` — registre append-only des grilles jouées et rapprochées.
 3. `.../loto/loto_MASTER.csv` — historique complet, uniquement si Charles pose une question sur les tirages eux-mêmes.
 
@@ -31,6 +31,7 @@ Les crons GitHub sont « best effort » et un créneau peut être sauté (consta
 
 ```bash
 cd /tmp && rm -rf qsc && git clone --quiet --depth 50 https://github.com/chg637/qsc-euromillions.git qsc
+[ -d /tmp/qsc/loto ] || (cd /tmp/qsc && git fetch --quiet --depth 50 origin qsc-loto && git checkout --quiet FETCH_HEAD)   # tant que la PR #3 n'est pas mergée
 cd /tmp/qsc/loto && python3 test_loto.py && python3 update_loto.py && python3 run_loto.py
 ```
 
