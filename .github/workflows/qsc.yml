@@ -45,7 +45,7 @@ jobs:
         run: |
           python3 - >> "$GITHUB_OUTPUT" <<'PY'
           import datetime, json
-          import qsc_v38 as q
+          import qsc_v39 as q
           want = q.next_draw_date(datetime.date.today()).isoformat()
           try:
               have = json.load(open("output/latest.json", encoding="utf-8"))["draw_date"]
@@ -62,7 +62,7 @@ jobs:
 
       - name: Tests unitaires
         if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
-        run: python3 test_qsc_v38.py
+        run: python3 test_qsc_v39.py
 
       - name: Refresh CSV depuis l'API
         if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
