@@ -10,12 +10,12 @@ Sortie : code 0 si OK (même sans nouveauté), 2 si l'API est injoignable, 3 si 
 """
 import argparse, json, os, sys, time, urllib.request, urllib.error
 from datetime import date
-import qsc_v37 as q
+import qsc_v39 as q
 
 API = "https://euromillions.api.pedromealha.dev/v1/draws?year={year}"
 
 def fetch_year(year, retries=4):
-    req = urllib.request.Request(API.format(year=year), headers={"User-Agent": "qsc-euromillions/3.7"})
+    req = urllib.request.Request(API.format(year=year), headers={"User-Agent": "qsc-euromillions/3.9"})
     for i in range(retries):
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
