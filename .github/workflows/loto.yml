@@ -1,0 +1,97 @@
+name: QSC Loto — tirage du jour
+
+on:
+  schedule:
+    # Lundi, mercredi, samedi (tirage à 20:35 Paris). Même garde d'idempotence que l'EuroMillions :
+    # trois créneaux, le premier qui tourne fait le travail.
+    - cron: "20 6 * * 1,3,6"    # 08:20 Paris (été) / 07:20 (hiver)
+    - cron: "20 9 * * 1,3,6"    # rattrapage n°1
+    - cron: "50 12 * * 1,3,6"   # rattrapage n°2 — après la lecture Cowork de 12:00 Paris
+  workflow_dispatch:
+    inputs:
+      jackpot_meur:
+        description: "Jackpot officiel du prochain tirage en M€ (vide = estimation FDJ)"
+        required: false
+        default: ""
+      n_grilles:
+        description: "Plancher du nombre de grilles (vide = règle jackpot, 3 par défaut)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qsc-loto
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: loto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run du jour déjà publié ?
+        id: guard
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import datetime, json
+          import qsc_loto as q
+          want = q.next_draw_date(datetime.date.today()).isoformat()
+          try:
+              have = json.load(open("output/latest.json", encoding="utf-8"))["draw_date"]
+          except Exception:
+              have = None
+          print(f"want={want}")
+          print(f"have={have}")
+          print("done=" + ("true" if have == want else "false"))
+          PY
+
+      - name: Rien à faire
+        if: github.event_name == 'schedule' && steps.guard.outputs.done == 'true'
+        run: echo "latest.json porte déjà le tirage ${{ steps.guard.outputs.want }}."
+
+      - name: Tests unitaires
+        if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
+        run: python3 test_loto.py
+
+      - name: Refresh CSV depuis la FDJ
+        if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
+        run: python3 update_loto.py
+
+      - name: Pipeline QSC Loto
+        if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
+        env:
+          JACKPOT_MEUR: ${{ github.event.inputs.jackpot_meur }}
+          N_GRILLES: ${{ github.event.inputs.n_grilles }}
+        run: python3 run_loto.py
+
+      - name: Commit des résultats
+        if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
+        run: |
+          git config user.name "qsc-bot"
+          git config user.email "qsc-bot@users.noreply.github.com"
+          git add loto_MASTER.csv loto_PRIZES.csv output/
+          if git diff --cached --quiet; then
+            echo "rien à committer"
+          else
+            git commit -m "QSC Loto run $(date -u +%F) — $(python3 -c "import json;d=json.load(open('output/latest.json'));print('tirage',d['draw_date'],'·',d['dataset']['n'],'tirages')")"
+            git pull --rebase --quiet
+            git push
+          fi
+
+      - name: Résumé d'échec
+        if: failure()
+        run: |
+          {
+            echo "## Run QSC Loto en échec"
+            echo "Tirage visé : \`${{ steps.guard.outputs.want }}\` · dernier publié : \`${{ steps.guard.outputs.have }}\`"
+            echo "Relancer : Actions → QSC Loto — tirage du jour → Run workflow."
+          } >> "$GITHUB_STEP_SUMMARY"

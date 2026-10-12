@@ -101,7 +101,7 @@ def _ridge_fit(rows_x, y, k, lam=1e-6):
     a, b = beta[0], beta[1:]
     mean_b = sum(b) / k
     b = [v - mean_b for v in b]
-    a = a + 5 * mean_b if k == 50 else a + 2 * mean_b   # recentrage sans changer les prédictions
+    a = a + len(rows_x[0]) * mean_b                      # recentrage sans changer les prédictions
     resid = [yy - a - sum(b[j] for j in idx) for idx, yy in zip(rows_x, y)]
     return a, b, resid
 
