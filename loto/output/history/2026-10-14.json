@@ -1,0 +1,363 @@
+{
+ "version": "1.0",
+ "jeu": "Loto",
+ "run_date": "2026-10-13",
+ "draw_date": "2026-10-14",
+ "draw_date_fr": "mercredi 14/10/2026",
+ "seed": 20261014,
+ "dataset": {
+  "n": 2819,
+  "premier": "2008-10-06",
+  "dernier": "2026-10-10",
+  "source": "csv",
+  "hash": "5ddb4c663db5",
+  "integrite": true,
+  "alertes": []
+ },
+ "jackpot": {
+  "meur": 8.0,
+  "source": "estimation",
+  "note": "jackpot du 2026-10-10 (7 M€) non gagné : +1 M€ au tirage suivant"
+ },
+ "n_grilles": 3,
+ "n_grilles_regle_jackpot": 3,
+ "n_grilles_plancher": null,
+ "porteurs": [
+  "Fréquence globale",
+  "Lag / retard normalisé",
+  "Momentum",
+  "Chaînes de Markov",
+  "Fenêtres glissantes",
+  "Co-occurrence / graphe"
+ ],
+ "porteur_precedent_inéligible": null,
+ "selection": {
+  "regle": "univers = décile le moins joué des C(49,5) hors motifs pénalisés ; le porteur départage à l'intérieur",
+  "quantile": 0.1,
+  "univers_grilles": 171957,
+  "total_grilles": 1906884,
+  "seuil_gp": 0.9089,
+  "chance_univers": [
+   1,
+   10,
+   2
+  ],
+  "max_recouvrement": 2,
+  "popularite_source": "gagnants par rang FDJ (loto_PRIZES.csv)"
+ },
+ "popularite": {
+  "source": "gagnants par rang FDJ (loto_PRIZES.csv)",
+  "estimee": true,
+  "nums": {
+   "1": 1.0746,
+   "2": 1.0009,
+   "3": 1.0798,
+   "4": 1.0914,
+   "5": 1.1841,
+   "6": 1.1203,
+   "7": 1.2656,
+   "8": 1.1213,
+   "9": 1.1797,
+   "10": 1.2056,
+   "11": 1.2495,
+   "12": 1.2361,
+   "13": 1.2438,
+   "14": 1.076,
+   "15": 1.0635,
+   "16": 1.0311,
+   "17": 1.1049,
+   "18": 1.0517,
+   "19": 1.1753,
+   "20": 1.0254,
+   "21": 1.0324,
+   "22": 1.0948,
+   "23": 1.0763,
+   "24": 1.0909,
+   "25": 1.0317,
+   "26": 1.0356,
+   "27": 1.082,
+   "28": 1.0489,
+   "29": 1.0228,
+   "30": 0.9379,
+   "31": 0.9448,
+   "32": 0.7858,
+   "33": 0.9087,
+   "34": 0.7926,
+   "35": 0.7685,
+   "36": 0.7905,
+   "37": 0.8393,
+   "38": 0.8407,
+   "39": 0.775,
+   "40": 0.7895,
+   "41": 0.8123,
+   "42": 0.8885,
+   "43": 0.869,
+   "44": 0.9134,
+   "45": 0.8563,
+   "46": 0.7452,
+   "47": 0.8191,
+   "48": 0.8553,
+   "49": 0.9717
+  },
+  "chance": {
+   "1": 0.7501,
+   "2": 0.862,
+   "3": 1.0761,
+   "4": 1.0038,
+   "5": 1.1633,
+   "6": 0.946,
+   "7": 1.3768,
+   "8": 1.044,
+   "9": 0.999,
+   "10": 0.7789
+  },
+  "nums_min": 46,
+  "nums_max": 7,
+  "chance_tries": [
+   1,
+   10,
+   2,
+   6,
+   9,
+   4,
+   8,
+   3,
+   5,
+   7
+  ],
+  "tranches": {
+   "1-12": 1.151,
+   "13-31": 1.062,
+   "32-40": 0.81,
+   "41-49": 0.859
+  },
+  "n_tirages_nums": 2819,
+  "n_tirages_chance": 1502,
+  "periode": [
+   "2008-10-06",
+   "2026-10-10"
+  ],
+  "r2_nums": 0.617,
+  "se_moyen_nums": 0.0147,
+  "se_moyen_chance": 0.0036
+ },
+ "grilles": [
+  {
+   "id": 1,
+   "model": "Fréquence globale",
+   "nums": [
+    15,
+    22,
+    35,
+    38,
+    41
+   ],
+   "chance_model": "Chance — fréquence",
+   "chance": 1,
+   "sum": 151,
+   "even": 2,
+   "low": 2,
+   "anti_share": 90.8,
+   "rel_popularity": 0.458,
+   "cowinners": 0.144
+  },
+  {
+   "id": 2,
+   "model": "Lag / retard normalisé",
+   "nums": [
+    27,
+    33,
+    37,
+    40,
+    41
+   ],
+   "chance_model": "Chance — fenêtres",
+   "chance": 2,
+   "sum": 178,
+   "even": 1,
+   "low": 0,
+   "anti_share": 96.2,
+   "rel_popularity": 0.456,
+   "cowinners": 0.144
+  },
+  {
+   "id": 3,
+   "model": "Momentum",
+   "nums": [
+    4,
+    16,
+    35,
+    42,
+    46
+   ],
+   "chance_model": "Chance — lag",
+   "chance": 10,
+   "sum": 143,
+   "even": 4,
+   "low": 2,
+   "anti_share": 93.7,
+   "rel_popularity": 0.446,
+   "cowinners": 0.14
+  }
+ ],
+ "consensus": {
+  "grid": null,
+  "message": "non calculable ce jour : aucun modèle ne surperforme le hasard après correction — la consensus dégénère volontairement."
+ },
+ "backtest": {
+  "meta": {
+   "burn_in": 150,
+   "step": 1,
+   "n_points": 2669,
+   "n_models": 6,
+   "n_sim": 5000,
+   "best_edge": 0.018083666587654146,
+   "p_global": 0.3915216956608678,
+   "null_max_q95": 0.030073175767122113
+  },
+  "numeros": {
+   "Fréquence globale": {
+    "n": 2669,
+    "avg": 0.5282877482203072,
+    "edge": 0.018083666587654146,
+    "ci": [
+     -0.0066446960949985145,
+     0.042812029270306806
+    ],
+    "p_raw": 0.07218556288742252,
+    "p_adj": 0.3915216956608678,
+    "significant": false
+   },
+   "Lag / retard normalisé": {
+    "n": 2669,
+    "avg": 0.5196702884975646,
+    "edge": 0.009466206864911508,
+    "ci": [
+     -0.016011500141457857,
+     0.03419456954756428
+    ],
+    "p_raw": 0.23315336932613479,
+    "p_adj": 0.7970405918816237,
+    "significant": false
+   },
+   "Fenêtres glissantes": {
+    "n": 2669,
+    "avg": 0.5091794679655302,
+    "edge": -0.00102461366712292,
+    "ci": [
+     -0.0253783041879172,
+     0.02295440469181298
+    ],
+    "p_raw": 0.5302939412117577,
+    "p_adj": 0.99000199960008,
+    "significant": false
+   },
+   "Momentum": {
+    "n": 2669,
+    "avg": 0.5196702884975646,
+    "edge": 0.009466206864911508,
+    "ci": [
+     -0.015262155817741097,
+     0.03419456954756428
+    ],
+    "p_raw": 0.23315336932613479,
+    "p_adj": 0.7970405918816237,
+    "significant": false
+   },
+   "Co-occurrence / graphe": {
+    "n": 2669,
+    "avg": 0.5050580741850881,
+    "edge": -0.005146007447564993,
+    "ci": [
+     -0.028750353644642568,
+     0.019207683073229287
+    ],
+    "p_raw": 0.6514697060587883,
+    "p_adj": 0.9988002399520096,
+    "significant": false
+   },
+   "Chaînes de Markov": {
+    "n": 2669,
+    "avg": 0.511052828774822,
+    "edge": 0.0008487471421689818,
+    "ci": [
+     -0.023504943378625354,
+     0.025951781986680023
+    ],
+    "p_raw": 0.46490701859628075,
+    "p_adj": 0.977004599080184,
+    "significant": false
+   }
+  },
+  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.39) — le choix des porteurs est méthodologique, pas inférentiel.",
+  "chance": {
+   "Chance — fréquence": {
+    "n": 2669,
+    "avg": 0.10603222180591983,
+    "edge": 0.006032221805919821,
+    "ci": [
+     -0.005582615211689776,
+     0.018021730985387785
+    ],
+    "p_raw": 0.14277144571085784,
+    "p_adj": 0.3787242551489702,
+    "significant": false
+   },
+   "Chance — lag": {
+    "n": 2669,
+    "avg": 0.09891345073061071,
+    "edge": -0.0010865492693892947,
+    "ci": [
+     -0.012326714125140512,
+     0.010528287748220302
+    ],
+    "p_raw": 0.5546890621875625,
+    "p_adj": 0.9132173565286943,
+    "significant": false
+   },
+   "Chance — fenêtres": {
+    "n": 2669,
+    "avg": 0.10603222180591983,
+    "edge": 0.006032221805919821,
+    "ci": [
+     -0.005582615211689776,
+     0.018021730985387785
+    ],
+    "p_raw": 0.14277144571085784,
+    "p_adj": 0.3787242551489702,
+    "significant": false
+   }
+  },
+  "chance_meta": {
+   "n_points": 2669,
+   "n_models": 3,
+   "best_edge": 0.006032221805919821,
+   "p_global": 0.3787242551489702
+  },
+  "chance_verdict": "Aucun modèle Chance ne se distingue du hasard : choix méthodologique par rotation."
+ },
+ "chi2": {
+  "stat": 36.82,
+  "p": 0.88
+ },
+ "registre": {
+  "rapproche": [],
+  "cumul": {
+   "grilles": 0,
+   "match_nums": 0,
+   "attendu_nums": 0.0,
+   "ecart_nums": 0.0,
+   "match_chance": 0,
+   "attendu_chance": 0.0,
+   "ecart_chance": 0.0,
+   "meilleur": 0
+  }
+ },
+ "disclaimer": "Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative. Les edges backtestés peuvent être du bruit statistique — méthodologie documentée, pas un oracle.",
+ "equivalence": "Toutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/19 068 840 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.",
+ "checklist": {
+  "ok": true,
+  "fails": []
+ },
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative. Les edges backtestés peuvent être du bruit statistique — méthodologie documentée, pas un oracle.\n\nQSC Loto v1.0 — tirage du mercredi 14/10/2026 · 2819 tirages · seed 20261014\nJackpot 8 M€ (estimation) → 3 grilles (6,60 €)\n\nG1 (Fréquence globale) : 15 22 35 38 41 Chance 1\nG2 (Lag / retard normalisé) : 27 33 37 40 41 Chance 2\nG3 (Momentum) : 04 16 35 42 46 Chance 10\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/19 068 840 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.\nSélection : univers des 10 % de grilles les moins jouées, Chance parmi les moins joués ; le porteur départage, il ne prédit pas.\nPopularité : gagnants par rang FDJ (loto_PRIZES.csv) — 2819 tirages, tranche 1-12 ×1.15, 41-49 ×0.86 ; Chance les moins joués : 1, 10, 2.\nBacktest : Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.39) — le choix des porteurs est méthodologique, pas inférentiel.\nCumul protocole vs hasard : 0 numéros trouvés sur 0 grilles (attendu 0.0, écart +0.0).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative. Les edges backtestés peuvent être du bruit statistique — méthodologie documentée, pas un oracle."
+}

@@ -34,3 +34,20 @@ python3 test_qsc_v39.py
 python3 update_master.py            # ~10 s, dépend de l'API
 python3 run_qsc.py [--jackpot 95]   # ~90 s (5 000 simulations null, 50 000 grilles Monte-Carlo)
 ```
+
+## QSC Loto (dossier `loto/`)
+
+Même protocole transposé au Loto FDJ (5 numéros sur 49 + numéro Chance sur 10, tirages lundi / mercredi / samedi) : six selectors backtestés, null exacte 5 parmi 49, popularité des numéros et du numéro Chance estimée sur les gagnants par rang publiés par la FDJ (2 819 tirages depuis 2008), univers impopulaire, registre append-only, 3 grilles par défaut (+1 par tranche de 10 M€ au-delà de 10 M€).
+
+| Fichier | Rôle |
+|---|---|
+| `loto/loto_MASTER.csv`, `loto/loto_PRIZES.csv` | Historique officiel FDJ (tirages ; gagnants par rang, règle 6 rangs 2008-2017 puis 9 rangs). |
+| `loto/qsc_loto.py`, `loto/popularite_loto.py` | Module et estimateur de popularité (stdlib). |
+| `loto/update_loto.py`, `loto/run_loto.py` | Refresh depuis le zip FDJ `loto_201911` ; pipeline complet → `loto/output/`. |
+| `loto/test_loto.py` | 49 tests. |
+| `.github/workflows/loto.yml` | Crons lun/mer/sam (06:20, 09:20, 12:50 UTC) + garde d'idempotence. |
+| `PROMPT_tache_cloud_loto.md` | Prompt de la tâche Claude cloud Loto. |
+
+```bash
+cd loto && python3 test_loto.py && python3 update_loto.py && python3 run_loto.py   # ~50 s
+```
