@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-run_qsc.py — Pipeline QSC v3.8 complet, exécuté par GitHub Actions les jours de tirage.
+run_qsc.py — Pipeline QSC v3.9 complet, exécuté par GitHub Actions les jours de tirage.
 
 Étapes : chargement + intégrité → rapprochement du run précédent (registre append-only)
 → backtest numéros/étoiles (step 1, null exact, max-stat) → diagnostics (chi², Monte-Carlo)
-→ estimation jackpot → rotation narrative → sélection dans l'univers impopulaire (D1) → consensus (stricte)
+→ popularité estimée sur les gagnants par rang (R7, repli proxy UK) → estimation jackpot → rotation narrative
+→ sélection dans l'univers impopulaire (D1/R8) → consensus (stricte)
 → latest.json / latest.html / history/<date>.json → checklist.
 
 Usage : python3 run_qsc.py [--csv ...] [--out output] [--jackpot 95] [--today 2026-09-08]
@@ -12,7 +13,8 @@ Sortie : code 0 si checklist verte, 4 sinon (le livrable est quand même écrit,
 """
 import argparse, csv, json, os, sys, html as H
 from datetime import date
-import qsc_v38 as q
+import qsc_v39 as q
+import popularite as P
 
 # ------------------------------------------------------------------ registre
 
@@ -54,6 +56,28 @@ def cumul(rows):
             "match_stars": ms, "attendu_stars": round(q.star_baseline(12) * n, 2),
             "ecart_stars": round(ms - q.star_baseline(12) * n, 2),
             "meilleur": max((int(r["match_nums"]) for r in played), default=0)}
+
+# ------------------------------------------------------------------ popularité (R7)
+
+def popularity_report(table):
+    """Résumé de la table en vigueur (après set_popularity) pour le JSON/HTML."""
+    nums = {n: round(q.popularity(n), 4) for n in q.ALL_NUMS}
+    stars = {s: round(q.star_popularity(s), 4) for s in q.ALL_STARS}
+    meta = (table or {}).get("meta", {})
+    r = {"source": q.POP["source"], "estimee": table is not None,
+         "nums": nums, "stars": stars,
+         "nums_min": min(nums, key=nums.get), "nums_max": max(nums, key=nums.get),
+         "stars_tries": sorted(stars, key=stars.get),
+         "tranches": {f"{lo}-{hi}": round(sum(nums[n] for n in range(lo, hi+1)) / (hi-lo+1), 3)
+                      for lo, hi in [(1, 12), (13, 31), (32, 40), (41, 50)]}}
+    if table is not None:
+        mn, me = meta.get("numeros", {}), meta.get("etoiles", {})
+        r.update({"n_tirages_nums": mn.get("n_draws"), "n_tirages_stars": me.get("n_draws"),
+                  "periode": mn.get("periode"), "r2_nums": round(mn.get("r2", 0), 3),
+                  "se_moyen_nums": round(sum(mn.get("se", {}).values()) / 50, 4) if mn.get("se") else None,
+                  "se_moyen_stars": round(sum(me.get("se", {}).values()) / 12, 4) if me.get("se") else None,
+                  "intercept": round(mn.get("intercept", 0), 4), "intercept_uniforme": round(mn.get("intercept_uniforme", 0), 4)})
+    return r
 
 # ------------------------------------------------------------------ jackpot
 
@@ -102,6 +126,30 @@ def svg_hist(hist, marks):
             f'<text x="{W/2:.0f}" y="{Hh-8}" fill="#8593a3" font-size="11" text-anchor="middle">matches moyens / tirage (50 000 grilles aléatoires)</text>')
     return f'<svg viewBox="0 0 {W} {Hh}" xmlns="http://www.w3.org/2000/svg">{bars}{lines}{axis}</svg>'
 
+def popularity_html(p):
+    """Section R7 : barres de popularité relative par numéro et par étoile."""
+    def bars(table, keys, w=12):
+        mx = max(table[k] for k in keys); mn = min(table[k] for k in keys)
+        out = []
+        for k in keys:
+            v = table[k]; h = 46 * (v - mn) / (mx - mn or 1) + 4
+            col = "#ef5350" if v > 1.05 else ("#31c48d" if v < 0.95 else "#8593a3")
+            out.append(f'<div title="{k} : ×{v:.2f}" style="display:inline-block;width:{w}px;margin:0 1px;text-align:center;font-size:9px;color:#8593a3;vertical-align:bottom">'
+                       f'<div style="height:50px;display:flex;align-items:flex-end"><div style="width:100%;height:{h:.0f}px;background:{col};border-radius:2px 2px 0 0"></div></div>{k}</div>')
+        return "".join(out)
+    nums = {int(k): v for k, v in p["nums"].items()}; stars = {int(k): v for k, v in p["stars"].items()}
+    if p["estimee"]:
+        src = (f'{H.escape(p["source"])} — {p["n_tirages_nums"]} tirages ({p["periode"][0]} → {p["periode"][1]}), '
+               f'R² {p["r2_nums"]:.2f}, incertitude moyenne ±{p["se_moyen_nums"]:.3f} par numéro, ±{p["se_moyen_stars"]:.3f} par étoile. '
+               f'Tranches : 1-12 ×{p["tranches"]["1-12"]:.2f} · 13-31 ×{p["tranches"]["13-31"]:.2f} · 32-40 ×{p["tranches"]["32-40"]:.2f} · 41-50 ×{p["tranches"]["41-50"]:.2f}. '
+               f'Numéro le plus joué : {p["nums_max"]} (×{nums[p["nums_max"]]:.2f}), le moins joué : {p["nums_min"]} (×{nums[p["nums_min"]]:.2f}). '
+               f'Étoiles de la moins à la plus jouée : {" ".join(str(s) for s in p["stars_tries"])}.')
+    else:
+        src = f'{H.escape(p["source"])} — table estimée indisponible ce run (fichier de gagnants absent ou trop court) : proxy UK Lotto normalisé.'
+    return (f'<div class="card" style="margin-top:10px"><div class="k"><b>Popularité des numéros et des étoiles</b> (×1,00 = moyenne ; rouge = plus joué, vert = moins joué). {src}</div>'
+            f'<div style="margin-top:8px;white-space:nowrap;overflow-x:auto">{bars(nums, q.ALL_NUMS)}</div>'
+            f'<div style="margin-top:6px;white-space:nowrap">{bars(stars, q.ALL_STARS, w=18)}</div></div>')
+
 def fmt_nums(nums): return " ".join(f"{n:02d}" for n in nums)
 def fmt_int(n): return f"{n:,}".replace(",", "\u202f")
 
@@ -120,9 +168,8 @@ def build_html(R):
     cards = "".join(
         f'<div class="card"><div class="k">G{g["id"]} · porteur : {H.escape(g["model"])} · étoiles : {H.escape(g["star_model"])}</div>'
         f'<div class="nums">{fmt_nums(g["nums"])} <b>★ {g["stars"][0]:02d} {g["stars"][1]:02d}</b></div>'
-        f'<div class="k">somme {g["sum"]} · pairs {g["even"]}/5 · bas {g["low"]}/5 · anti-partage {g["anti_share"]:.0f}/100 · '
-        f'joueurs attendus ×{g["rel_popularity"]:.2f} vs grille moyenne · co-gagnants attendus {g["cowinners"]:.2f} · '
-        f'percentile MC {g["mc_pct"]:.0f}e <span class="k">(descriptif rétrospectif, sans valeur prédictive)</span></div></div>'
+        f'<div class="k">somme {g["sum"]} · pairs {g["even"]}/5 · bas {g["low"]}/5 · impopularité {g["anti_share"]:.0f}e percentile · '
+        f'joueurs attendus ×{g["rel_popularity"]:.2f} vs grille moyenne · co-gagnants attendus au rang 1 : {g["cowinners"]:.3f}</div></div>'
         for g in R["grilles"])
     marks = [(f'G{g["id"]}', g["mc_avg"], "#f5a524") for g in R["grilles"]]
     marks.append(("médiane", R["monte_carlo"]["median"], "#5aa9ff"))
@@ -149,7 +196,8 @@ def build_html(R):
 {plancher_html}
 <div class="grid">{cards}</div>
 <p class="k">{q.EQUIVALENCE}</p>
-<p class="k"><b>Sélection v3.8</b> : univers = les {100*R['selection']['quantile']:.0f} % de grilles les moins populaires ({fmt_int(R['selection']['univers_grilles'])} sur {fmt_int(R['selection']['total_grilles'])}, popularité moyenne ≤ {R['selection']['seuil_gp']:.3f} vs 1,15 pour la grille moyenne, proxy UK), hors motifs sur-joués ; étoiles dans 8-12. Le porteur ne fait que départager à l'intérieur de cet univers. Cela ne change pas la probabilité de gagner, seulement le partage attendu si la grille gagne.</p>
+<p class="k"><b>Sélection v3.9</b> : univers = les {100*R['selection']['quantile']:.0f} % de grilles les moins populaires ({fmt_int(R['selection']['univers_grilles'])} sur {fmt_int(R['selection']['total_grilles'])}, popularité moyenne ≤ {R['selection']['seuil_gp']:.3f} vs 1,00 pour la grille moyenne), hors motifs sur-joués ; étoiles = {len(R['selection']['etoiles_univers'])} paires du quart le moins joué. Le porteur ne fait que départager à l'intérieur de cet univers. Cela ne change pas la probabilité de gagner, seulement le partage attendu si la grille gagne.</p>
+{popularity_html(R['popularite'])}
 <p class="k">Consensus pondérée : {H.escape(R['consensus']['message'])}</p>
 
 <h2>Backtest numéros — walk-forward burn-in {R['backtest']['meta']['burn_in']}, step {R['backtest']['meta']['step']}, {R['backtest']['meta']['n_points']} points</h2>
@@ -179,7 +227,7 @@ def build_html(R):
 <div class="wrap"><table><tr><th>Tirage</th><th>Grille</th><th>Jouée</th><th>Réel</th><th class="r">Résultat</th></tr>{rec_html}</table></div>
 
 <h2>Lexique</h2>
-<p class="k"><b>Écart backtesté</b> : matches moyens du top-5 du modèle moins 0,50 (espérance d'une grille aléatoire). <b>IC95%</b> : bootstrap 10 000 tirages des points de test. <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic). <b>Porteur</b> : modèle qui départage les grilles à l'intérieur de l'univers impopulaire — un choix de méthode, pas un signal. <b>Joueurs attendus ×k</b> : facteur multiplicatif du nombre de joueurs sur cette grille par rapport à un joueur uniforme (popularités normalisées, étoiles incluses). <b>Anti-partage</b> : impopularité estimée de la grille (proxy UK, distribution FDJ non publiée) — réduit le partage en cas de gain, ne change pas la probabilité de gain. <b>Rotation narrative</b> : le porteur #1 d'un run est inéligible comme #1 au run suivant.</p>
+<p class="k"><b>Écart backtesté</b> : matches moyens du top-5 du modèle moins 0,50 (espérance d'une grille aléatoire). <b>IC95%</b> : bootstrap 10 000 tirages des points de test. <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic). <b>Porteur</b> : modèle qui départage les grilles à l'intérieur de l'univers impopulaire — un choix de méthode, pas un signal. <b>Joueurs attendus ×k</b> : facteur multiplicatif du nombre de joueurs sur cette grille par rapport à un joueur uniforme (popularités normalisées, étoiles incluses). <b>Impopularité (percentile)</b> : part des 2 118 760 grilles plus jouées que celle-ci d'après la table de popularité en vigueur, moins les pénalités de forme — réduit le partage en cas de gain, ne change pas la probabilité de gain. <b>Popularité estimée (R7)</b> : effet de chaque numéro sur le ratio gagnants à 3 numéros / gagnants à 2 numéros, tirage par tirage, sur le pool européen ; 1,00 = numéro moyen. <b>Rotation narrative</b> : le porteur #1 d'un run est inéligible comme #1 au run suivant.</p>
 <div class="warn">⚠️ {q.DISCLAIMER}</div>
 <div class="foot">QSC v{q.VERSION} · généré par GitHub Actions · source données : API pedromealha + CSV maître · checklist : {'OK' if chk['ok'] else 'KO — ' + '; '.join(chk['fails'])}</div>
 </body></html>"""
@@ -193,8 +241,10 @@ def build_chat(R):
             + (f" (règle jackpot : {R['n_grilles_regle_jackpot']} ; plancher n_grilles = {R['n_grilles_plancher']})"
                if R.get("n_grilles_plancher") else "") + f"\n\n{g}\n\n"
             f"{q.EQUIVALENCE}\n"
-            f"Sélection : univers des {100*R['selection']['quantile']:.0f} % de grilles les moins populaires (proxy UK), étoiles 8-12 ; le porteur départage, il ne prédit pas.\n"
-            f"Backtest : {R['backtest']['verdict']}\n"
+            f"Sélection : univers des {100*R['selection']['quantile']:.0f} % de grilles les moins populaires, étoiles du quart le moins joué ; le porteur départage, il ne prédit pas.\n"
+            f"Popularité : {R['popularite']['source']}"
+            + (f" — {R['popularite']['n_tirages_nums']} tirages, tranche 1-12 ×{R['popularite']['tranches']['1-12']:.2f}, 41-50 ×{R['popularite']['tranches']['41-50']:.2f} ; étoiles les moins jouées : {', '.join(str(s) for s in R['popularite']['stars_tries'][:4])}.\n" if R['popularite']['estimee'] else " (repli : table estimée indisponible ce run).\n")
+            + f"Backtest : {R['backtest']['verdict']}\n"
             f"Cumul protocole vs hasard : {c['match_nums']} numéros trouvés sur {c['grilles']} grilles (attendu {c['attendu_nums']}, écart {c['ecart_nums']:+}).\n\n"
             f"⚠️ {q.DISCLAIMER}")
 
@@ -203,6 +253,7 @@ def build_chat(R):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", default="euromillions_MASTER.csv")
+    ap.add_argument("--prizes", default="euromillions_PRIZES.csv")
     ap.add_argument("--out", default="output")
     ap.add_argument("--jackpot", type=float, default=os.environ.get("JACKPOT_MEUR") or None)
     ap.add_argument("--today", default=None)
@@ -243,6 +294,13 @@ def main():
     if hist_files:  # dernier run d'un tirage antérieur (un re-run du même jour ne se voit pas lui-même)
         prev = json.load(open(os.path.join(a.out, "history", hist_files[-1]), encoding="utf-8"))
         prev_first = prev.get("porteurs", [None])[0]
+
+    # R7 : popularité estimée sur les gagnants par rang (repli proxy UK si impossible)
+    pop_table = P.estimate(a.prizes, draws, q.star_pool)
+    q.set_popularity(pop_table)   # None → proxy
+    pop_info = popularity_report(pop_table)
+    with open(os.path.join(a.out, "popularite.json"), "w", encoding="utf-8") as f:
+        json.dump(pop_info, f, ensure_ascii=False, indent=1)
 
     # backtests
     bt, meta = q.backtest_all(draws, n_sim=a.n_sim, seed=seed)
@@ -285,7 +343,7 @@ def main():
                           "le porteur départage à l'intérieur, il n'élargit jamais l'univers",
                  "quantile": q.IMPOP_QUANTILE, "univers_grilles": len(universe), "total_grilles": n_total,
                  "seuil_gp": round(gp_thr, 4), "etoiles_univers": [list(p) for p in star_univ],
-                 "max_recouvrement": 2}
+                 "max_recouvrement": 2, "etoiles_quantile": q.STAR_QUANTILE, "popularite_source": q.POP["source"]}
     cons = q.consensus_grid(bt, draws)
     consensus = {"grid": list(cons) if cons else None,
                  "message": (f"{fmt_nums(cons)} (pondérée sur les seuls modèles significatifs)" if cons else
@@ -308,7 +366,7 @@ def main():
          "dataset": fp, "jackpot": jp, "n_grilles": n,
          "n_grilles_regle_jackpot": q.n_grids(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
          "porteurs": order, "porteur_precedent_inéligible": prev_first,
-         "selection": selection,
+         "selection": selection, "popularite": pop_info,
          "grilles": grids, "consensus": consensus,
          "backtest": {"meta": meta, "numeros": slim(bt), "verdict": q.verdict(bt, meta),
                       "etoiles": slim(sb), "etoiles_meta": smeta,
