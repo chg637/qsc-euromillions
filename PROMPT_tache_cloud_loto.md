@@ -68,7 +68,7 @@ Après la restitution texte, publie **systématiquement** un artefact avec l'out
 - **Écart backtesté** : matches moyens du top-5 du modèle en walk-forward (burn-in 150, step 1, ~2 700 points) moins 0,510 (5 parmi 49), l'espérance d'une grille aléatoire.
 - **p corrigé / p global** : probabilité, sous pur hasard, qu'au moins un des modèles atteigne l'écart observé (max-statistic, null hypergéométrique exact). Un p ≥ 0,05 signifie « indiscernable du hasard ».
 - **Porteur** : modèle qui a fourni la grille. Sans modèle significatif, l'ordre des porteurs est une convention (classement par écart + rotation narrative), pas un signal.
-- **Anti-partage** : impopularité estimée (proxy UK, distribution FDJ non publiée). Réduit le partage en cas de gain, ne change pas la probabilité de gagner.
+- **Impopularité (percentile)** : part des 1 906 884 grilles plus jouées que celle-ci d'après la table estimée sur les gagnants par rang FDJ. Réduit le partage en cas de gain, ne change pas la probabilité de gagner.
 - **Popularité estimée (R7)** : effet de chaque numéro sur le ratio gagnants à 3 numéros / à 2 numéros (numéro Chance : rangs avec Chance / sans Chance, règle 2017+) sur les gagnants par rang FDJ, 2 800+ tirages ; ×1,00 = moyenne. Si `popularite.estimee` est false, le run a utilisé le proxy UK de repli : le dire.
 
 ## §CE QUE TU NE FAIS PAS
