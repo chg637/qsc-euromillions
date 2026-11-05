@@ -1,0 +1,17 @@
+{
+ "fetched_at": "2026-10-12",
+ "added": [],
+ "last_draw": {
+  "date": "2026-10-10",
+  "has_winner": false,
+  "jackpot_eur": 7000000.0,
+  "jackpot_winners": 0
+ },
+ "fingerprint": {
+  "n": 2819,
+  "premier": "2008-10-06",
+  "dernier": "2026-10-10",
+  "source": "csv+fdj",
+  "hash": "5ddb4c663db5"
+ }
+}
