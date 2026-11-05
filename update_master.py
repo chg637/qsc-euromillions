@@ -2,7 +2,8 @@
 """
 update_master.py — Rafraîchit euromillions_MASTER.csv depuis l'API pedromealha.
 Append-only : n'écrase jamais un tirage existant, refuse d'écrire si l'intégrité casse.
-Écrit aussi output/api_meta.json (dernier tirage, jackpot du dernier tirage, gagnant ou non)
+Alimente aussi euromillions_PRIZES.csv (gagnants par rang, append-only, pour la popularité R7)
+et écrit output/api_meta.json (dernier tirage, jackpot du dernier tirage, gagnant ou non)
 pour l'estimation du prochain jackpot par run_qsc.py.
 
 Usage : python3 update_master.py [--csv euromillions_MASTER.csv] [--dry-run]
@@ -10,7 +11,8 @@ Sortie : code 0 si OK (même sans nouveauté), 2 si l'API est injoignable, 3 si 
 """
 import argparse, json, os, sys, time, urllib.request, urllib.error
 from datetime import date
-import qsc_v37 as q
+import qsc_v39 as q
+import popularite as P
 
 API = "https://euromillions.api.pedromealha.dev/v1/draws?year={year}"
 
@@ -32,12 +34,14 @@ def fetch_year(year, retries=4):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", default="euromillions_MASTER.csv")
+    ap.add_argument("--prizes", default="euromillions_PRIZES.csv")
     ap.add_argument("--out", default="output")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
     draws = q.load_master(a.csv)
     known = {d[0]: d for d in draws}
+    prizes = P.load_prizes(a.prizes); prizes_added = []
     last_year = int(draws[-1][0][:4])
     this_year = date.today().year
 
@@ -54,6 +58,8 @@ def main():
             d = it["date"]
             nums = tuple(sorted(int(x) for x in it["numbers"]))
             stars = tuple(sorted(int(x) for x in it["stars"]))
+            if it.get("prizes") and d not in prizes:
+                prizes[d] = P.prizes_from_api_item(it); prizes_added.append(d)
             if d in known:
                 if known[d][1] != nums or known[d][2] != stars:
                     print(f"CONFLIT {d} : CSV {known[d][1:]} vs API {(nums, stars)} — CSV conservé", file=sys.stderr)
@@ -79,6 +85,9 @@ def main():
         return
     if added:
         q.save_master(a.csv, new_draws)
+    if prizes_added:
+        P.save_prizes(a.prizes, prizes)
+    print(f"gagnants par rang : {len(prizes_added)} ligne(s) ajoutée(s), {len(prizes)} au total")
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "api_meta.json"), "w", encoding="utf-8") as f:
         json.dump({"fetched_at": date.today().isoformat(), "added": added, "last_draw": api_last,
