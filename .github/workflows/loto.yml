@@ -1,12 +1,12 @@
 name: QSC Loto — tirage du jour
 
 on:
-  schedule:
-    # Lundi, mercredi, samedi (tirage à 20:35 Paris). Même garde d'idempotence que l'EuroMillions :
-    # trois créneaux, le premier qui tourne fait le travail.
-    - cron: "20 6 * * 1,3,6"    # 08:20 Paris (été) / 07:20 (hiver)
-    - cron: "20 9 * * 1,3,6"    # rattrapage n°1
-    - cron: "50 12 * * 1,3,6"   # rattrapage n°2 — après la lecture Cowork de 12:00 Paris
+  # DÉSACTIVÉ le 05/11/2026 (audit) : le Loto est différé tant que les correctifs EuroMillions v4.0
+  # ne sont pas en production et que le module Loto n'est pas aligné (tirage uniforme, 1 grille,
+  # budget commun). Pour réactiver : rétablir les crons ci-dessous.
+  #   - cron: "20 6 * * 1,3,6"    # 08:20 Paris (été) / 07:20 (hiver)
+  #   - cron: "20 9 * * 1,3,6"    # rattrapage n°1
+  #   - cron: "50 12 * * 1,3,6"   # rattrapage n°2
   workflow_dispatch:
     inputs:
       jackpot_meur:

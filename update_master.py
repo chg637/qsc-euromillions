@@ -11,13 +11,13 @@ Sortie : code 0 si OK (même sans nouveauté), 2 si l'API est injoignable, 3 si 
 """
 import argparse, json, os, sys, time, urllib.request, urllib.error
 from datetime import date
-import qsc_v39 as q
+import qsc_v40 as q
 import popularite as P
 
 API = "https://euromillions.api.pedromealha.dev/v1/draws?year={year}"
 
 def fetch_year(year, retries=4):
-    req = urllib.request.Request(API.format(year=year), headers={"User-Agent": "qsc-euromillions/3.7"})
+    req = urllib.request.Request(API.format(year=year), headers={"User-Agent": "qsc-euromillions/4.0"})
     for i in range(retries):
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
@@ -54,6 +54,9 @@ def main():
             if not added and year == last_year:
                 sys.exit(2)
             break
+        os.makedirs(os.path.join(a.out, "api_cache"), exist_ok=True)   # montants par rang pour le registre en euros
+        with open(os.path.join(a.out, "api_cache", f"{year}.json"), "w", encoding="utf-8") as f:
+            json.dump(items, f, ensure_ascii=False)
         for it in items:
             d = it["date"]
             nums = tuple(sorted(int(x) for x in it["numbers"]))
@@ -73,7 +76,7 @@ def main():
             api_last = {"date": last["date"], "has_winner": bool(last.get("has_winner")),
                         "jackpot_eur": jp["prize"] if jp else None,
                         "jackpot_winners": jp["winners"] if jp else None}
-        time.sleep(1.5)
+        time.sleep(3)   # l'API renvoie 429 dès 3 requêtes rapprochées
 
     new_draws = sorted(known.values())
     ok, alerts = q.integrity_check(new_draws)

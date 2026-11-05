@@ -1,61 +1,116 @@
 # -*- coding: utf-8 -*-
 """
-run_qsc.py — Pipeline QSC v3.9 complet, exécuté par GitHub Actions les jours de tirage.
+run_qsc.py — Pipeline QSC v4.0 complet, exécuté par GitHub Actions les jours de tirage.
 
-Étapes : chargement + intégrité → rapprochement du run précédent (registre append-only)
-→ backtest numéros/étoiles (step 1, null exact, max-stat) → diagnostics (chi², Monte-Carlo)
-→ popularité estimée sur les gagnants par rang (R7, repli proxy UK) → estimation jackpot → rotation narrative
-→ sélection dans l'univers impopulaire (D1/R8) → consensus (stricte)
-→ latest.json / latest.html / history/<date>.json → checklist.
+Étapes : chargement + intégrité → rapprochement du run précédent (registre append-only, en euros)
+→ popularité estimée sur les gagnants par rang (R7, repli proxy UK) → backtest numéros/étoiles
+(DIAGNOSTIC : step 1, null exact, max-stat) → chi² → jackpot officiel (fdj.fr, repli estimation API)
+→ nombre de grilles (1/2/3/4 selon paliers, borné par le budget annuel) → tirage uniforme dans
+l'univers impopulaire (A1) → latest.json / latest.html / history/<date>.json → checklist.
 
-Usage : python3 run_qsc.py [--csv ...] [--out output] [--jackpot 95] [--today 2026-09-08]
+Usage : python3 run_qsc.py [--csv ...] [--out output] [--jackpot 95] [--today 2026-09-08] [--no-fdj]
 Sortie : code 0 si checklist verte, 4 sinon (le livrable est quand même écrit, marqué KO).
 """
-import argparse, csv, json, os, sys, html as H
+import argparse, csv, json, os, re, sys, math, html as H, urllib.request, urllib.error
 from datetime import date
-import qsc_v39 as q
+import qsc_v40 as q
 import popularite as P
 
-# ------------------------------------------------------------------ registre
+# ------------------------------------------------------------------ registre (A4 : en euros)
 
-REG_FIELDS = ["run_date", "draw_date", "grid", "model", "nums", "stars", "seed",
-              "real_nums", "real_stars", "match_nums", "match_stars"]
+REG_FIELDS = ["run_date", "draw_date", "grid", "model", "nums", "stars", "seed", "jackpot_meur",
+              "real_nums", "real_stars", "match_nums", "match_stars",
+              "rang", "gain_eur", "gagnants_rang", "gagnants_attendus_rang"]
+RANG = {(5, 2): 1, (5, 1): 2, (5, 0): 3, (4, 2): 4, (4, 1): 5, (3, 2): 6, (4, 0): 7,
+        (2, 2): 8, (3, 1): 9, (3, 0): 10, (1, 2): 11, (2, 1): 12, (2, 0): 13}
+P_RANG1 = 1 / 139_838_160
+
+def p_rank(k, s, pool=12):
+    """Probabilité exacte d'une grille d'avoir k numéros et s étoiles."""
+    return (math.comb(5, k) * math.comb(45, 5 - k) / math.comb(50, 5)) * \
+           (math.comb(2, s) * math.comb(pool - 2, 2 - s) / math.comb(pool, 2))
 
 def load_registre(path):
     if not os.path.exists(path): return []
     with open(path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f, delimiter=";"))
+        rows = list(csv.DictReader(f, delimiter=";"))
+    for r in rows:                       # lignes des versions antérieures : colonnes absentes → vides
+        for k in REG_FIELDS: r.setdefault(k, "")
+    return rows
 
 def save_registre(path, rows):
     with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=REG_FIELDS, delimiter=";", lineterminator="\n")
+        w = csv.DictWriter(f, fieldnames=REG_FIELDS, delimiter=";", lineterminator="\n", extrasaction="ignore")
         w.writeheader()
         for r in rows: w.writerow(r)
 
-def reconcile(rows, draws):
-    """Remplit les résultats des grilles dont le tirage est connu. Retourne les lignes rapprochées ce run."""
+def ventes_estimees(W):
+    """Grilles vendues sur le pool, estimées par les gagnants des rangs bas (moyenne de W_k / p_k
+       sur les rangs 2+0, 2+1, 1+2, 3+0 : chacun compte des centaines de milliers de gagnants)."""
+    est = [W[k] / p_rank(*k) for k in [(2, 0), (2, 1), (1, 2), (3, 0)] if W.get(k, 0) > 0]
+    return sum(est) / len(est) if est else None
+
+def reconcile(rows, draws, prizes, prize_amounts):
+    """Remplit numéros/étoiles trouvés, rang, gain réel et gagnants observés/attendus pour les grilles
+       dont le tirage est connu. prizes = {date: {(k,s): winners}}, prize_amounts = {date: {(k,s): eur}}.
+       Retourne les lignes rapprochées ce run."""
     by_date = {d: (n, s) for d, n, s in draws}
     done = []
     for r in rows:
         if r["match_nums"] == "" and r["draw_date"] in by_date:
             rn, rs = by_date[r["draw_date"]]
-            gn = {int(x) for x in r["nums"].split("-")}
-            gs = {int(x) for x in r["stars"].split("-")}
+            gn = {int(x) for x in r["nums"].split("-")}; gs = {int(x) for x in r["stars"].split("-")}
             r["real_nums"] = "-".join(map(str, rn)); r["real_stars"] = "-".join(map(str, rs))
-            r["match_nums"] = str(len(gn & set(rn))); r["match_stars"] = str(len(gs & set(rs)))
+            k, s = len(gn & set(rn)), len(gs & set(rs))
+            r["match_nums"] = str(k); r["match_stars"] = str(s)
             done.append(r)
+        if r["match_nums"] != "" and r["rang"] == "" and r["draw_date"] in prizes:
+            k, s = int(r["match_nums"]), int(r["match_stars"])
+            W = prizes[r["draw_date"]]; rg = RANG.get((k, s))
+            r["rang"] = rg or 0
+            r["gain_eur"] = prize_amounts.get(r["draw_date"], {}).get((k, s), 0.0) if rg else 0.0
+            if rg:
+                N = ventes_estimees(W)
+                r["gagnants_rang"] = W.get((k, s), "")
+                r["gagnants_attendus_rang"] = round(N * p_rank(k, s), 1) if N else ""
     return done
 
-def cumul(rows):
+def cumul(rows, annee):
     played = [r for r in rows if r["match_nums"] != ""]
     n = len(played)
-    mn = sum(int(r["match_nums"]) for r in played)
-    ms = sum(int(r["match_stars"]) for r in played)
+    mn = sum(int(r["match_nums"]) for r in played); ms = sum(int(r["match_stars"]) for r in played)
+    ic_n = 1.96 * math.sqrt(0.41327 * n) if n else 0.0
+    ic_s = 1.96 * math.sqrt(0.25253 * n) if n else 0.0
+    gains = sum(float(r["gain_eur"] or 0) for r in played)
+    mise = q.PRIX_GRILLE * n
+    en_euros = [r for r in played if r["rang"] != ""]
+    obs = sum(float(r["gagnants_rang"]) for r in en_euros if r["gagnants_rang"] not in ("", None))
+    att = sum(float(r["gagnants_attendus_rang"]) for r in en_euros if r["gagnants_attendus_rang"] not in ("", None))
+    depense_annee = q.PRIX_GRILLE * sum(1 for r in rows if r["draw_date"][:4] == str(annee))
     return {"grilles": n, "match_nums": mn, "attendu_nums": round(q.BASELINE * n, 2),
-            "ecart_nums": round(mn - q.BASELINE * n, 2),
+            "ecart_nums": round(mn - q.BASELINE * n, 2), "ic95_nums": round(ic_n, 2),
             "match_stars": ms, "attendu_stars": round(q.star_baseline(12) * n, 2),
-            "ecart_stars": round(ms - q.star_baseline(12) * n, 2),
-            "meilleur": max((int(r["match_nums"]) for r in played), default=0)}
+            "ecart_stars": round(ms - q.star_baseline(12) * n, 2), "ic95_stars": round(ic_s, 2),
+            "meilleur": max((int(r["match_nums"]) for r in played), default=0),
+            "mise_eur": round(mise, 2), "gains_eur": round(gains, 2), "solde_eur": round(gains - mise, 2),
+            "grilles_en_euros": len(en_euros), "rangs_atteints": sum(1 for r in en_euros if int(r["rang"] or 0) > 0),
+            "gagnants_observes": round(obs, 1), "gagnants_attendus": round(att, 1),
+            "taux_partage": round(obs / att, 3) if att else None,
+            "depense_annee_eur": round(depense_annee, 2), "budget_eur": q.BUDGET_EUR, "annee": annee}
+
+def load_prize_amounts(prizes_path, api_dir):
+    """Montants par rang (euros) — pas dans euromillions_PRIZES.csv (gagnants seulement) :
+       lus dans output/api_cache/<année>.json quand update_master les a conservés."""
+    out = {}
+    if not os.path.isdir(api_dir): return out
+    for fn in sorted(os.listdir(api_dir)):
+        if not fn.endswith(".json"): continue
+        try:
+            for it in json.load(open(os.path.join(api_dir, fn), encoding="utf-8")):
+                out[it["date"]] = {(p["matched_numbers"], p["matched_stars"]): float(p["prize"]) for p in it.get("prizes", [])}
+        except Exception as e:
+            print(f"api_cache {fn} illisible : {e}", file=sys.stderr)
+    return out
 
 # ------------------------------------------------------------------ popularité (R7)
 
@@ -79,17 +134,44 @@ def popularity_report(table):
                   "intercept": round(mn.get("intercept", 0), 4), "intercept_uniforme": round(mn.get("intercept_uniforme", 0), 4)})
     return r
 
-# ------------------------------------------------------------------ jackpot
+# ------------------------------------------------------------------ jackpot (A3)
 
-def estimate_jackpot(api_meta, override):
+FDJ_URL = "https://www.fdj.fr/jeux-de-tirage/euromillions-my-million"
+
+def jackpot_fdj(timeout=20):
+    """Montant officiel du prochain tirage lu sur la page EuroMillions de fdj.fr
+       (motif « NNN Millions d'euros à gagner »). None si la page est inaccessible ou illisible."""
+    try:
+        req = urllib.request.Request(FDJ_URL, headers={"User-Agent": "Mozilla/5.0 (qsc-euromillions/4.0)"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            page = r.read().decode("utf-8", "replace")
+    except Exception as e:
+        print(f"fdj.fr inaccessible : {e}", file=sys.stderr); return None
+    m = re.search(r"(\d{2,3})\s*Millions\s*d(?:&#x27;|'|’)euros\s*à\s*gagner", page)
+    if not m: return None
+    v = float(m.group(1))
+    return v if 17 <= v <= 250 else None
+
+def estimate_jackpot(api_meta, override, use_fdj=True):
     if override is not None:
         return {"meur": float(override), "source": "fourni", "note": "montant officiel fourni au run"}
     last = (api_meta or {}).get("last_draw") or {}
     jp = last.get("jackpot_eur")
+    est = round(jp / 1e6, 1) if (jp and not last.get("has_winner")) else 17.0
+    if use_fdj:
+        off = jackpot_fdj()
+        if off is not None and off >= est - 1:
+            return {"meur": off, "source": "fdj.fr", "note": f"montant officiel lu sur fdj.fr (estimation API : {est:.0f} M€)"}
     if jp and not last.get("has_winner"):
-        return {"meur": round(jp / 1e6, 1), "source": "estimation",
-                "note": f"report du jackpot du {last['date']} sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"}
-    return {"meur": 17.0, "source": "estimation", "note": "jackpot remis à ~17 M€ après un gagnant (ou API muette)"}
+        return {"meur": est, "source": "estimation",
+                "note": f"fdj.fr indisponible — report du jackpot du {last['date']} sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"}
+    return {"meur": 17.0, "source": "estimation", "note": "fdj.fr indisponible — jackpot remis à ~17 M€ après un gagnant (ou API muette)"}
+
+def ev_grille(jackpot_meur, rel_pop, ventes=23_000_000, ev_rangs_bas=0.47):
+    """EV nette théorique d'une grille : rang 1 avec partage Poisson (λ = N·p₁·ρ) + rangs 2-13 (≈0,47 €)."""
+    lam = ventes * P_RANG1 * rel_pop
+    share = (1 - math.exp(-lam)) / lam if lam > 1e-12 else 1.0
+    return jackpot_meur * 1e6 * P_RANG1 * share + ev_rangs_bas - q.PRIX_GRILLE
 
 # ------------------------------------------------------------------ HTML
 
@@ -108,23 +190,6 @@ th{color:var(--mut);font-weight:500}.r{text-align:right}.wrap{overflow-x:auto}
 .k{color:var(--mut);font-size:12px}.mono{font-family:ui-monospace,Menlo,monospace}
 svg{max-width:100%;height:auto}.foot{color:var(--mut);font-size:12px;margin-top:20px}
 """
-
-def svg_hist(hist, marks):
-    W, Hh, pad = 640, 160, 28
-    counts = hist["counts"]; mx = max(counts) or 1; n = len(counts)
-    bw = (W - 2*pad) / n
-    bars = "".join(
-        f'<rect x="{pad + i*bw:.1f}" y="{Hh - pad - (c/mx)*(Hh-2*pad):.1f}" width="{bw-1:.1f}" height="{(c/mx)*(Hh-2*pad):.1f}" fill="#2b3f57"/>'
-        for i, c in enumerate(counts))
-    def x_of(v): return pad + (v - hist["lo"]) / (hist["hi"] - hist["lo"] or 1) * (W - 2*pad)
-    lines = "".join(
-        f'<line x1="{x_of(v):.1f}" x2="{x_of(v):.1f}" y1="{pad-8}" y2="{Hh-pad}" stroke="{c}" stroke-width="2"/>'
-        f'<text x="{x_of(v):.1f}" y="{pad-12}" fill="{c}" font-size="11" text-anchor="middle">{lab}</text>'
-        for lab, v, c in marks)
-    axis = (f'<text x="{pad}" y="{Hh-8}" fill="#8593a3" font-size="11">{hist["lo"]:.3f}</text>'
-            f'<text x="{W-pad}" y="{Hh-8}" fill="#8593a3" font-size="11" text-anchor="end">{hist["hi"]:.3f}</text>'
-            f'<text x="{W/2:.0f}" y="{Hh-8}" fill="#8593a3" font-size="11" text-anchor="middle">matches moyens / tirage (50 000 grilles aléatoires)</text>')
-    return f'<svg viewBox="0 0 {W} {Hh}" xmlns="http://www.w3.org/2000/svg">{bars}{lines}{axis}</svg>'
 
 def popularity_html(p):
     """Section R7 : barres de popularité relative par numéro et par étoile."""
@@ -152,100 +217,99 @@ def popularity_html(p):
 
 def fmt_nums(nums): return " ".join(f"{n:02d}" for n in nums)
 def fmt_int(n): return f"{n:,}".replace(",", "\u202f")
+def fmt_eur(x): return f"{x:,.2f} €".replace(",", "\u202f").replace(".", ",")
 
 def build_html(R):
     fp, bt, sb = R["dataset"], R["backtest"]["numeros"], R["backtest"]["etoiles"]
     badge = lambda r: '<span class="b sig">sig.</span>' if r["significant"] else '<span class="b ns">ns</span>'
     rows_bt = "".join(
-        f'<tr><td>{i+1}</td><td>{H.escape(k)}</td><td class="r mono">{r["edge"]:+.3f}</td>'
+        f'<tr><td>{H.escape(k)}</td><td class="r mono">{r["edge"]:+.3f}</td>'
         f'<td class="r mono">[{r["ci"][0]:+.3f} ; {r["ci"][1]:+.3f}]</td><td class="r mono">{r["p_raw"]:.2f}</td>'
         f'<td class="r mono">{r["p_adj"]:.2f}</td><td>{badge(r)}</td></tr>'
-        for i, (k, r) in enumerate(sorted(bt.items(), key=lambda x: -x[1]["edge"])))
+        for k, r in sorted(bt.items(), key=lambda x: -x[1]["edge"]))
     rows_sb = "".join(
         f'<tr><td>{H.escape(k)}</td><td class="r mono">{r["edge"]:+.3f}</td>'
         f'<td class="r mono">[{r["ci"][0]:+.3f} ; {r["ci"][1]:+.3f}]</td><td class="r mono">{r["p_adj"]:.2f}</td><td>{badge(r)}</td></tr>'
         for k, r in sorted(sb.items(), key=lambda x: -x[1]["edge"]))
     cards = "".join(
-        f'<div class="card"><div class="k">G{g["id"]} · porteur : {H.escape(g["model"])} · étoiles : {H.escape(g["star_model"])}</div>'
+        f'<div class="card"><div class="k">G{g["id"]} · tirage uniforme dans l&rsquo;univers impopulaire</div>'
         f'<div class="nums">{fmt_nums(g["nums"])} <b>★ {g["stars"][0]:02d} {g["stars"][1]:02d}</b></div>'
         f'<div class="k">somme {g["sum"]} · pairs {g["even"]}/5 · bas {g["low"]}/5 · impopularité {g["anti_share"]:.0f}e percentile · '
-        f'joueurs attendus ×{g["rel_popularity"]:.2f} vs grille moyenne · co-gagnants attendus au rang 1 : {g["cowinners"]:.3f}</div></div>'
-        for g in R["grilles"])
-    marks = [(f'G{g["id"]}', g["mc_avg"], "#f5a524") for g in R["grilles"]]
-    marks.append(("médiane", R["monte_carlo"]["median"], "#5aa9ff"))
+        f'joueurs attendus ×{g["rel_popularity"]:.2f} vs grille moyenne · co-gagnants attendus au rang 1 : {g["cowinners"]:.3f} · '
+        f'EV nette théorique {fmt_eur(g["ev_nette"])}</div></div>'
+        for g in R["grilles"]) or '<div class="card"><div class="k">Aucune grille ce run : budget annuel atteint.</div></div>'
     c = R["registre"]["cumul"]
     rec = R["registre"]["rapproche"]
-    rec_html = ("".join(f'<tr><td>{r["draw_date"]}</td><td>G{r["grid"]} · {H.escape(r["model"])}</td><td class="mono">{r["nums"]} ★ {r["stars"]}</td>'
-                        f'<td class="mono">{r["real_nums"]} ★ {r["real_stars"]}</td><td class="r"><b>{r["match_nums"]}</b> num · {r["match_stars"]} ét.</td></tr>' for r in rec)
-                or '<tr><td colspan="5" class="k">aucune grille à rapprocher ce run</td></tr>')
-    chk = R["checklist"]
-    jp = R["jackpot"]
+    rec_html = ("".join(f'<tr><td>{r["draw_date"]}</td><td>G{r["grid"]}</td><td class="mono">{r["nums"]} ★ {r["stars"]}</td>'
+                        f'<td class="mono">{r["real_nums"]} ★ {r["real_stars"]}</td><td class="r"><b>{r["match_nums"]}</b> num · {r["match_stars"]} ét.</td>'
+                        f'<td class="r">{("rang " + str(r["rang"]) + " · " + fmt_eur(float(r["gain_eur"] or 0))) if r.get("rang") not in ("", 0, "0", None) else "—"}</td></tr>' for r in rec)
+                or '<tr><td colspan="6" class="k">aucune grille à rapprocher ce run</td></tr>')
+    chk = R["checklist"]; jp = R["jackpot"]
     plancher_html = ""
     if R.get("n_grilles_plancher"):
         plancher_html = ('<p class="k">Nombre de grilles relevé par l&rsquo;input <span class="mono">n_grilles</span> = '
                          f'{R["n_grilles_plancher"]} ; la règle jackpot seule en donnait {R["n_grilles_regle_jackpot"]}. '
                          'Le plancher change combien on joue, jamais la probabilité de gain de chaque grille.</p>')
     alerts = "".join(f"<li>{H.escape(a)}</li>" for a in R["dataset"]["alertes"]) or "<li>aucune alerte</li>"
+    tp = c["taux_partage"]
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>QSC EuroMillions v{q.VERSION} — tirage du {R['draw_date']}</title><style>{CSS}</style></head><body>
 <h1>QSC EuroMillions v{q.VERSION} — tirage du {R['draw_date_fr']}</h1>
 <div class="k">run {R['run_date']} · seed <span class="mono">{R['seed']}</span> · dataset {fp['n']} tirages ({fp['premier']} → {fp['dernier']}) · hash <span class="mono">{fp['hash']}</span> · checklist {'<span class="b ok">verte</span>' if chk['ok'] else '<span class="b ko">KO</span>'}</div>
 <div class="warn">⚠️ {q.DISCLAIMER}</div>
 
-<h2>Grilles proposées — {len(R['grilles'])} (jackpot {jp['meur']:.0f} M€, {jp['source']} : {H.escape(jp['note'])})</h2>
+<h2>Grilles — {len(R['grilles'])} (jackpot {jp['meur']:.0f} M€, {jp['source']} : {H.escape(jp['note'])})</h2>
 {plancher_html}
 <div class="grid">{cards}</div>
 <p class="k">{q.EQUIVALENCE}</p>
-<p class="k"><b>Sélection v3.9</b> : univers = les {100*R['selection']['quantile']:.0f} % de grilles les moins populaires ({fmt_int(R['selection']['univers_grilles'])} sur {fmt_int(R['selection']['total_grilles'])}, popularité moyenne ≤ {R['selection']['seuil_gp']:.3f} vs 1,00 pour la grille moyenne), hors motifs sur-joués ; étoiles = {len(R['selection']['etoiles_univers'])} paires du quart le moins joué. Le porteur ne fait que départager à l'intérieur de cet univers. Cela ne change pas la probabilité de gagner, seulement le partage attendu si la grille gagne.</p>
+<p class="k"><b>Sélection v4.0</b> : univers = les {100*R['selection']['quantile']:.0f} % de grilles les moins jouées ({fmt_int(R['selection']['univers_grilles'])} sur {fmt_int(R['selection']['total_grilles'])}, popularité moyenne ≤ {R['selection']['seuil_gp']:.3f} vs 1,00 pour la grille moyenne), hors motifs sur-joués ; étoiles = {len(R['selection']['etoiles_univers'])} paires du quart le moins joué. Les grilles sont tirées <b>uniformément</b> dans cet univers (seed {R['seed']}) : aucun modèle ne les choisit, parce qu'aucun modèle ne fait mieux que le hasard (voir diagnostic). Cela ne change pas la probabilité de gagner, seulement le partage attendu si la grille gagne.</p>
+<p class="k"><b>Mise</b> : règle {R['mise']['regle']} ; budget {fmt_eur(c['budget_eur'])} par an, dépensé {fmt_eur(c['depense_annee_eur'])} en {c['annee']} (grilles de ce run comprises), reste {fmt_eur(max(0, c['budget_eur'] - c['depense_annee_eur']))}.</p>
 {popularity_html(R['popularite'])}
-<p class="k">Consensus pondérée : {H.escape(R['consensus']['message'])}</p>
 
-<h2>Backtest numéros — walk-forward burn-in {R['backtest']['meta']['burn_in']}, step {R['backtest']['meta']['step']}, {R['backtest']['meta']['n_points']} points</h2>
-<div class="wrap"><table><tr><th>#</th><th>Modèle</th><th class="r">Écart vs 0,50</th><th class="r">IC95% bootstrap</th><th class="r">p brut</th><th class="r">p corrigé*</th><th></th></tr>{rows_bt}</table></div>
-<p class="k">* p corrigé = max-statistic sur {R['backtest']['meta']['n_models']} modèles ({R['backtest']['meta']['n_sim']} simulations sous H0 hypergéométrique exact). Seuil de significativité du meilleur modèle : écart ≥ {R['backtest']['meta']['null_max_q95']:+.3f}. <b>Verdict :</b> {H.escape(R['backtest']['verdict'])}</p>
+<h2>Tableau de bord cumulatif — protocole vs hasard</h2>
+<div class="grid">
+<div class="card"><div class="k">Grilles jouées (registre)</div><div class="nums">{c['grilles']}</div></div>
+<div class="card"><div class="k">Numéros trouvés / attendus</div><div class="nums">{c['match_nums']} / {c['attendu_nums']}</div><div class="k">écart {c['ecart_nums']:+} · IC95 % ±{c['ic95_nums']}</div></div>
+<div class="card"><div class="k">Étoiles trouvées / attendues</div><div class="nums">{c['match_stars']} / {c['attendu_stars']}</div><div class="k">écart {c['ecart_stars']:+} · IC95 % ±{c['ic95_stars']}</div></div>
+<div class="card"><div class="k">Mise / gains</div><div class="nums">{fmt_eur(c['mise_eur'])} / {fmt_eur(c['gains_eur'])}</div><div class="k">solde {fmt_eur(c['solde_eur'])} · {c['rangs_atteints']} rang(s) atteint(s) sur {c['grilles_en_euros']} grilles en euros</div></div>
+<div class="card"><div class="k">Partage observé (rangs atteints)</div><div class="nums">{('×' + format(tp, '.2f')) if tp is not None else '—'}</div><div class="k">gagnants observés {fmt_int(round(c['gagnants_observes']))} / attendus sous jeu uniforme {fmt_int(round(c['gagnants_attendus']))} — &lt; 1 = les grilles jouées sont moins partagées que la moyenne</div></div>
+</div>
+<h2>Rapprochement du run précédent</h2>
+<div class="wrap"><table><tr><th>Tirage</th><th>Grille</th><th>Jouée</th><th>Réel</th><th class="r">Résultat</th><th class="r">Rang · gain</th></tr>{rec_html}</table></div>
 
-<h2>Backtest étoiles — pool historique 9/11/12 respecté</h2>
-<div class="wrap"><table><tr><th>Modèle</th><th class="r">Écart vs baseline pool</th><th class="r">IC95%</th><th class="r">p corrigé</th><th></th></tr>{rows_sb}</table></div>
-<p class="k">p global étoiles = {R['backtest']['etoiles_meta']['p_global']:.2f}. {H.escape(R['backtest']['etoiles_verdict'])}</p>
-
-<h2>Diagnostics</h2>
+<h2>Diagnostic — les modèles ne font pas mieux que le hasard (walk-forward burn-in {R['backtest']['meta']['burn_in']}, step {R['backtest']['meta']['step']}, {R['backtest']['meta']['n_points']} points)</h2>
+<div class="wrap"><table><tr><th>Modèle</th><th class="r">Écart vs 0,50</th><th class="r">IC95% bootstrap</th><th class="r">p brut</th><th class="r">p corrigé*</th><th></th></tr>{rows_bt}</table></div>
+<p class="k">* p corrigé = max-statistic sur {R['backtest']['meta']['n_models']} modèles ({R['backtest']['meta']['n_sim']} simulations sous H0 hypergéométrique exact). Seuil de significativité du meilleur modèle : écart ≥ {R['backtest']['meta']['null_max_q95']:+.3f}. <b>Verdict :</b> {H.escape(R['backtest']['verdict'])} Ce tableau est publié pour mémoire : il ne pilote plus la sélection depuis la v4.0.</p>
+<div class="wrap"><table><tr><th>Modèle étoiles</th><th class="r">Écart vs baseline pool</th><th class="r">IC95%</th><th class="r">p corrigé</th><th></th></tr>{rows_sb}</table></div>
+<p class="k">p global étoiles = {R['backtest']['etoiles_meta']['p_global']:.2f}.</p>
 <div class="grid">
 <div class="card"><div class="k">χ² d'uniformité (50 numéros, ddl 49)</div><div class="nums">{R['chi2']['stat']:.1f}</div><div class="k">p ≈ {R['chi2']['p']:.2f} — {'aucun biais matériel' if R['chi2']['p'] > 0.05 else 'écart à l uniforme : vérifier le dataset'}</div></div>
 <div class="card"><div class="k">P(≥1 numéro) pour toute grille</div><div class="nums">{100*q.P_GE1_MATCH:.1f} %</div><div class="k">1 − C(45,5)/C(50,5) — identique pour toutes les grilles</div></div>
 <div class="card"><div class="k">Intégrité dataset</div><ul class="k" style="margin:6px 0 0 16px;padding:0">{alerts}</ul></div>
 </div>
-<div class="card" style="margin-top:10px"><div class="k">Histogramme Monte-Carlo — position rétrospective des grilles (une grille au 90e percentile a fait 0 numéro le 31/07 : ce panneau décrit le passé, il ne prédit rien)</div>{svg_hist(R['monte_carlo']['hist'], marks)}</div>
-
-<h2>Tableau de bord cumulatif — protocole vs hasard</h2>
-<div class="grid">
-<div class="card"><div class="k">Grilles jouées (registre)</div><div class="nums">{c['grilles']}</div></div>
-<div class="card"><div class="k">Numéros trouvés / attendus</div><div class="nums">{c['match_nums']} / {c['attendu_nums']}</div><div class="k">écart {c['ecart_nums']:+}</div></div>
-<div class="card"><div class="k">Étoiles trouvées / attendues</div><div class="nums">{c['match_stars']} / {c['attendu_stars']}</div><div class="k">écart {c['ecart_stars']:+}</div></div>
-<div class="card"><div class="k">Meilleure grille</div><div class="nums">{c['meilleur']} num.</div></div>
-</div>
-<h2>Rapprochement du run précédent</h2>
-<div class="wrap"><table><tr><th>Tirage</th><th>Grille</th><th>Jouée</th><th>Réel</th><th class="r">Résultat</th></tr>{rec_html}</table></div>
 
 <h2>Lexique</h2>
-<p class="k"><b>Écart backtesté</b> : matches moyens du top-5 du modèle moins 0,50 (espérance d'une grille aléatoire). <b>IC95%</b> : bootstrap 10 000 tirages des points de test. <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic). <b>Porteur</b> : modèle qui départage les grilles à l'intérieur de l'univers impopulaire — un choix de méthode, pas un signal. <b>Joueurs attendus ×k</b> : facteur multiplicatif du nombre de joueurs sur cette grille par rapport à un joueur uniforme (popularités normalisées, étoiles incluses). <b>Impopularité (percentile)</b> : part des 2 118 760 grilles plus jouées que celle-ci d'après la table de popularité en vigueur, moins les pénalités de forme — réduit le partage en cas de gain, ne change pas la probabilité de gain. <b>Popularité estimée (R7)</b> : effet de chaque numéro sur le ratio gagnants à 3 numéros / gagnants à 2 numéros, tirage par tirage, sur le pool européen ; 1,00 = numéro moyen. <b>Rotation narrative</b> : le porteur #1 d'un run est inéligible comme #1 au run suivant.</p>
+<p class="k"><b>Univers impopulaire</b> : les 10 % de grilles les moins jouées d'après la table de popularité estimée sur les gagnants par rang (R7). <b>Impopularité (percentile)</b> : part des 2 118 760 grilles plus jouées que celle-ci, moins les pénalités de forme. <b>Joueurs attendus ×k</b> : facteur multiplicatif du nombre de joueurs sur cette grille par rapport à un joueur uniforme (étoiles incluses). <b>EV nette théorique</b> : espérance de gain d'une grille (rang 1 avec partage Poisson aux ventes médianes, rangs 2-13 aux montants moyens) moins son prix ; toujours négative. <b>Partage observé</b> : sur les rangs atteints par les grilles jouées, gagnants réels divisés par les gagnants attendus si tout le monde jouait au hasard ; c'est la seule mesure du levier anti-partage. <b>Écart backtesté</b> : matches moyens du top-5 d'un modèle moins 0,50 ; <b>p corrigé</b> : probabilité, sous pur hasard, qu'au moins un des modèles atteigne cet écart (max-statistic).</p>
 <div class="warn">⚠️ {q.DISCLAIMER}</div>
-<div class="foot">QSC v{q.VERSION} · généré par GitHub Actions · source données : API pedromealha + CSV maître · checklist : {'OK' if chk['ok'] else 'KO — ' + '; '.join(chk['fails'])}</div>
+<div class="foot">QSC v{q.VERSION} · généré par GitHub Actions · source données : API pedromealha + CSV maître · jackpot : {jp['source']} · checklist : {'OK' if chk['ok'] else 'KO — ' + '; '.join(chk['fails'])}</div>
 </body></html>"""
 
 def build_chat(R):
-    g = "\n".join(f"G{x['id']} ({x['model']}) : {fmt_nums(x['nums'])} ★ {x['stars'][0]:02d} {x['stars'][1]:02d}" for x in R["grilles"])
+    g = "\n".join(f"G{x['id']} : {fmt_nums(x['nums'])} ★ {x['stars'][0]:02d} {x['stars'][1]:02d}  (joueurs attendus ×{x['rel_popularity']:.2f}, EV nette {x['ev_nette']:+.2f} €)" for x in R["grilles"]) \
+        or "Aucune grille ce run : budget annuel atteint."
     c = R["registre"]["cumul"]
+    tp = c["taux_partage"]
     return (f"⚠️ {q.DISCLAIMER}\n\n"
             f"QSC EuroMillions v{q.VERSION} — tirage du {R['draw_date_fr']} · {R['dataset']['n']} tirages · seed {R['seed']}\n"
-            f"Jackpot {R['jackpot']['meur']:.0f} M€ ({R['jackpot']['source']}) → {len(R['grilles'])} grilles"
-            + (f" (règle jackpot : {R['n_grilles_regle_jackpot']} ; plancher n_grilles = {R['n_grilles_plancher']})"
-               if R.get("n_grilles_plancher") else "") + f"\n\n{g}\n\n"
+            f"Jackpot {R['jackpot']['meur']:.0f} M€ ({R['jackpot']['source']}) → {len(R['grilles'])} grille(s) ({R['mise']['regle']})"
+            + (f" (plancher n_grilles = {R['n_grilles_plancher']})" if R.get("n_grilles_plancher") else "") + f"\n\n{g}\n\n"
             f"{q.EQUIVALENCE}\n"
-            f"Sélection : univers des {100*R['selection']['quantile']:.0f} % de grilles les moins populaires, étoiles du quart le moins joué ; le porteur départage, il ne prédit pas.\n"
+            f"Sélection : tirage uniforme (seed) parmi les {100*R['selection']['quantile']:.0f} % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard ({R['backtest']['verdict']})\n"
             f"Popularité : {R['popularite']['source']}"
-            + (f" — {R['popularite']['n_tirages_nums']} tirages, tranche 1-12 ×{R['popularite']['tranches']['1-12']:.2f}, 41-50 ×{R['popularite']['tranches']['41-50']:.2f} ; étoiles les moins jouées : {', '.join(str(s) for s in R['popularite']['stars_tries'][:4])}.\n" if R['popularite']['estimee'] else " (repli : table estimée indisponible ce run).\n")
-            + f"Backtest : {R['backtest']['verdict']}\n"
-            f"Cumul protocole vs hasard : {c['match_nums']} numéros trouvés sur {c['grilles']} grilles (attendu {c['attendu_nums']}, écart {c['ecart_nums']:+}).\n\n"
+            + (f" — {R['popularite']['n_tirages_nums']} tirages ; étoiles les moins jouées : {', '.join(str(s) for s in R['popularite']['stars_tries'][:4])}.\n" if R['popularite']['estimee'] else " (repli : table estimée indisponible ce run).\n")
+            + f"Budget : {c['depense_annee_eur']:.2f} € dépensés en {c['annee']} sur {c['budget_eur']:.0f} €.\n"
+            f"Cumul : {c['match_nums']} numéros trouvés sur {c['grilles']} grilles (attendu {c['attendu_nums']}, écart {c['ecart_nums']:+} ± {c['ic95_nums']}) · mise {c['mise_eur']:.2f} €, gains {c['gains_eur']:.2f} €"
+            + (f" · partage observé ×{tp:.2f} sur {c['rangs_atteints']} rang(s)" if tp is not None else "") + f".\n\n"
             f"⚠️ {q.DISCLAIMER}")
 
 # ------------------------------------------------------------------ main
@@ -258,9 +322,9 @@ def main():
     ap.add_argument("--jackpot", type=float, default=os.environ.get("JACKPOT_MEUR") or None)
     ap.add_argument("--today", default=None)
     ap.add_argument("--n-grilles", type=int, default=int(os.environ.get("N_GRILLES") or 0),
-                    help="plancher du nombre de grilles ; ne peut que relever la règle jackpot")
+                    help="plancher du nombre de grilles ; ne peut que relever la règle jackpot (le budget borne toujours)")
+    ap.add_argument("--no-fdj", action="store_true", help="ne pas interroger fdj.fr (tests, rejeu)")
     ap.add_argument("--n-sim", type=int, default=5000)
-    ap.add_argument("--mc", type=int, default=50_000)
     a = ap.parse_args()
     os.makedirs(os.path.join(a.out, "history"), exist_ok=True)
 
@@ -275,105 +339,84 @@ def main():
     ok, alerts = q.integrity_check(draws)
     fp = q.dataset_fingerprint(draws, "csv"); fp["integrite"] = ok; fp["alertes"] = alerts
     if draws[-1][0] >= draw_iso:
-        print(f"Le tirage {draw_iso} est déjà dans le dataset : rien à générer.", file=sys.stderr); sys.exit(0)
+        msg = f"Le tirage {draw_iso} est déjà dans le dataset : rien à générer."
+        print(msg, file=sys.stderr)
+        if os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f: f.write(f"## Run QSC sans objet\n\n{msg}\n")
+        sys.exit(0)
 
     api_meta = None
     p = os.path.join(a.out, "api_meta.json")
     if os.path.exists(p):
         api_meta = json.load(open(p, encoding="utf-8"))
 
-    # registre : rapprochement + cumul
+    # registre : rapprochement (en euros) + cumul
+    prizes = P.load_prizes(a.prizes)
+    amounts = load_prize_amounts(a.prizes, os.path.join(a.out, "api_cache"))
     reg_path = os.path.join(a.out, "registre.csv")
     rows = load_registre(reg_path)
-    rapproche = reconcile(rows, draws)
-    cum = cumul(rows)
-
-    # rotation narrative : porteur #1 du dernier run
-    prev_first = None
-    hist_files = sorted(f for f in os.listdir(os.path.join(a.out, "history")) if f < f"{draw_iso}.json")
-    if hist_files:  # dernier run d'un tirage antérieur (un re-run du même jour ne se voit pas lui-même)
-        prev = json.load(open(os.path.join(a.out, "history", hist_files[-1]), encoding="utf-8"))
-        prev_first = prev.get("porteurs", [None])[0]
+    rapproche = reconcile(rows, draws, prizes, amounts)
+    cum_avant = cumul(rows, draw_date.year)
 
     # R7 : popularité estimée sur les gagnants par rang (repli proxy UK si impossible)
     pop_table = P.estimate(a.prizes, draws, q.star_pool)
-    q.set_popularity(pop_table)   # None → proxy
+    q.set_popularity(pop_table)
     pop_info = popularity_report(pop_table)
     with open(os.path.join(a.out, "popularite.json"), "w", encoding="utf-8") as f:
         json.dump(pop_info, f, ensure_ascii=False, indent=1)
 
-    # backtests
+    # diagnostic (ne pilote rien)
     bt, meta = q.backtest_all(draws, n_sim=a.n_sim, seed=seed)
     sb, smeta = q.backtest_stars(draws, n_sim=a.n_sim, seed=seed)
     chi2, pchi = q.chi2_uniformity(draws)
-    mc = q.monte_carlo(draws, n=a.mc, seed=seed)
-    hist = q.mc_histogram(mc)
 
-    # jackpot / nombre de grilles
-    jp = estimate_jackpot(api_meta, a.jackpot)
-    n = q.n_grids(jp["meur"], plancher=a.n_grilles)
+    # jackpot officiel / nombre de grilles sous budget
+    jp = estimate_jackpot(api_meta, a.jackpot, use_fdj=not a.no_fdj)
+    deja_ce_tirage = sum(1 for r in rows if r["draw_date"] == draw_iso)
+    depense = cum_avant["depense_annee_eur"] - q.PRIX_GRILLE * deja_ce_tirage   # un re-run ne compte pas deux fois ses grilles
+    n = q.n_grids(jp["meur"], plancher=a.n_grilles, depense_annee=depense)
+    regle_txt = f"1 grille, +1 à 100, 150 et 200 M€ ({q.n_grids_regle(jp['meur'])} pour {jp['meur']:.0f} M€)"
 
-    # grilles
-    order = q.rank_selectors(bt, ineligible_first=prev_first)
-    star_order = sorted(sb, key=lambda k: -sb[k]["edge"])
+    # grilles : tirage uniforme dans l'univers impopulaire (A1)
     universe, gp_thr, n_total = q.impopular_universe()
     star_univ = q.star_universe(12)
-    grids, avoid, avoid_stars = [], [], []
-    for i in range(n):
-        model = order[i % len(order)]
-        g = q.best_grid(model, draws, avoid=avoid, max_ov=2, universe=universe)
-        if g is None:  # univers épuisé par la contrainte de recouvrement (n très grand)
-            g = q.best_grid(model, draws, avoid=avoid, max_ov=3, universe=universe)
-        if g is None:
-            print(f"Aucune grille admissible pour le porteur {model} (grille {i+1}/{n}) : "
-                  f"réduis le plancher n_grilles.", file=sys.stderr)
-            sys.exit(5)
-        avoid.append(g)
-        sm = star_order[i % len(star_order)]
-        stars = q.best_stars(sm, draws, avoid=avoid_stars, pool=12, universe=star_univ)
-        avoid_stars.append(stars)
-        avg, pct = q.mc_percentile(g, draws, mc)
-        grids.append({"id": i+1, "model": model, "nums": list(g), "star_model": sm, "stars": list(stars),
+    ventes = ventes_estimees(prizes[max(prizes)]) if prizes else None
+    grids = []
+    for i, (g, stars) in enumerate(q.draw_grids(seed, n, universe=universe, star_univ=star_univ)):
+        rp = q.relative_popularity(g, stars)
+        grids.append({"id": i+1, "nums": list(g), "stars": list(stars),
                       "sum": sum(g), "even": sum(1 for x in g if x % 2 == 0), "low": sum(1 for x in g if x <= 25),
                       "anti_share": round(q.anti_share_score(g, stars), 1),
-                      "rel_popularity": round(q.relative_popularity(g, stars), 3),
-                      "cowinners": round(q.expected_cowinners(g, stars), 3),
-                      "mc_avg": round(avg, 4), "mc_pct": round(pct, 1)})
-    selection = {"regle": "univers = décile le moins populaire des C(50,5) hors motifs pénalisés ; "
-                          "le porteur départage à l'intérieur, il n'élargit jamais l'univers",
+                      "rel_popularity": round(rp, 3),
+                      "cowinners": round(q.expected_cowinners(g, stars, n_tickets=ventes or 25_000_000), 3),
+                      "ev_nette": round(ev_grille(jp["meur"], rp, ventes=ventes or 23_000_000), 3)})
+    selection = {"regle": "univers = décile le moins populaire des C(50,5) (table R7) hors motifs pénalisés ; "
+                          "tirage uniforme par seed à l'intérieur, recouvrement ≤ 2 numéros, paires d'étoiles distinctes",
                  "quantile": q.IMPOP_QUANTILE, "univers_grilles": len(universe), "total_grilles": n_total,
                  "seuil_gp": round(gp_thr, 4), "etoiles_univers": [list(p) for p in star_univ],
-                 "max_recouvrement": 2, "etoiles_quantile": q.STAR_QUANTILE, "popularite_source": q.POP["source"]}
-    cons = q.consensus_grid(bt, draws)
-    consensus = {"grid": list(cons) if cons else None,
-                 "message": (f"{fmt_nums(cons)} (pondérée sur les seuls modèles significatifs)" if cons else
-                             "non calculable ce jour : aucun modèle ne surperforme le hasard après correction — la consensus dégénère volontairement.")}
+                 "max_recouvrement": 2, "etoiles_quantile": q.STAR_QUANTILE, "popularite_source": q.POP["source"],
+                 "ventes_estimees": ventes}
 
-    # registre : ajout des grilles du jour (idempotent, par (tirage, n° de grille)).
-    # Append-only : une grille déjà inscrite n'est jamais réécrite — un re-run avec
-    # un plancher plus haut ne fait que compléter les grilles manquantes.
+    # registre : ajout des grilles du jour (idempotent, par (tirage, n° de grille))
     deja = {(r["draw_date"], str(r["grid"])) for r in rows}
     for g in grids:
-        if (draw_iso, str(g["id"])) in deja:
-            continue
-        rows.append({"run_date": today.isoformat(), "draw_date": draw_iso, "grid": g["id"], "model": g["model"],
+        if (draw_iso, str(g["id"])) in deja: continue
+        rows.append({"run_date": today.isoformat(), "draw_date": draw_iso, "grid": g["id"], "model": "uniforme-univers-R7",
                      "nums": "-".join(map(str, g["nums"])), "stars": "-".join(map(str, g["stars"])), "seed": seed,
-                     "real_nums": "", "real_stars": "", "match_nums": "", "match_stars": ""})
+                     "jackpot_meur": jp["meur"], "real_nums": "", "real_stars": "", "match_nums": "", "match_stars": "",
+                     "rang": "", "gain_eur": "", "gagnants_rang": "", "gagnants_attendus_rang": ""})
     save_registre(reg_path, rows)
+    cum = cumul(rows, draw_date.year)
 
     slim = lambda d: {k: {kk: vv for kk, vv in v.items() if kk != "points"} for k, v in d.items()}
     R = {"version": q.VERSION, "run_date": today.isoformat(), "draw_date": draw_iso, "draw_date_fr": draw_fr, "seed": seed,
          "dataset": fp, "jackpot": jp, "n_grilles": n,
-         "n_grilles_regle_jackpot": q.n_grids(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
-         "porteurs": order, "porteur_precedent_inéligible": prev_first,
-         "selection": selection, "popularite": pop_info,
-         "grilles": grids, "consensus": consensus,
-         "backtest": {"meta": meta, "numeros": slim(bt), "verdict": q.verdict(bt, meta),
-                      "etoiles": slim(sb), "etoiles_meta": smeta,
-                      "etoiles_verdict": ("Au moins un modèle étoiles significatif après correction — prudence." if any(r["significant"] for r in sb.values())
-                                          else "Aucun modèle étoiles ne se distingue du hasard : choix méthodologique par rotation.")},
+         "n_grilles_regle_jackpot": q.n_grids_regle(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
+         "mise": {"regle": regle_txt, "budget_eur": q.BUDGET_EUR, "prix_grille": q.PRIX_GRILLE, "depense_annee_avant_run": round(depense, 2)},
+         "selection": selection, "popularite": pop_info, "grilles": grids,
+         "backtest": {"role": "diagnostic — ne pilote pas la sélection", "meta": meta, "numeros": slim(bt), "verdict": q.verdict(bt, meta),
+                      "etoiles": slim(sb), "etoiles_meta": smeta},
          "chi2": {"stat": round(chi2, 2), "p": round(pchi, 3)},
-         "monte_carlo": {"n": a.mc, "median": mc[len(mc)//2], "hist": hist},
          "registre": {"rapproche": rapproche, "cumul": cum},
          "disclaimer": q.DISCLAIMER, "equivalence": q.EQUIVALENCE}
     R["checklist"] = {"ok": True, "fails": []}
