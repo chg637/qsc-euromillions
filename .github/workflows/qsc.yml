@@ -3,12 +3,18 @@ name: QSC EuroMillions — tirage du jour
 on:
   schedule:
     # Mardi et vendredi. GitHub traite les crons "best effort" : un créneau peut être
-    # purement et simplement sauté en cas de charge (c'est ce qui est arrivé le 02/10/2026).
-    # Trois créneaux + garde d'idempotence : le premier qui tourne fait le travail,
-    # les suivants constatent que latest.json porte déjà la bonne draw_date et s'arrêtent.
+    # sauté (02/10/2026) ou, plus souvent, très en retard : sur les runs d'octobre et
+    # novembre 2026, les créneaux de 06:10 UTC sont partis entre 5 h et 8 h trop tard
+    # (06/11/2026 : rien à midi, heure de la lecture Cowork).
+    # D'où des créneaux placés la veille au soir et en pleine nuit, à des minutes creuses
+    # (:23, :37) pour que le premier à partir livre avant 12:00 Paris. Les suivants,
+    # y compris les anciens créneaux conservés en rattrapage, constatent que latest.json
+    # porte déjà la bonne draw_date et s'arrêtent (garde d'idempotence ci-dessous).
+    - cron: "23 22 * * 1,4"   # veille au soir (lundi/jeudi) pour le tirage du lendemain
+    - cron: "37 2 * * 2,5"    # nuit du jour de tirage
     - cron: "10 6 * * 2,5"    # 08:10 Paris (été) / 07:10 (hiver)
     - cron: "10 9 * * 2,5"    # rattrapage n°1
-    - cron: "40 12 * * 2,5"   # rattrapage n°2 — après la lecture Cowork de 12:00 Paris
+    - cron: "40 12 * * 2,5"   # rattrapage n°2
   workflow_dispatch:
     inputs:
       jackpot_meur:
