@@ -28,12 +28,14 @@ Ne recalcule jamais un backtest, une p-value ou une grille à la main. Le seul c
 
 ## §FALLBACK — le run GitHub n'a pas tourné
 
-Les crons GitHub sont « best effort » et un créneau peut être sauté (constaté le 02/10/2026). Dans ce cas tu produis le résultat toi-même, dans le sandbox, avec le code versionné du dépôt — ce n'est pas un recalcul maison : c'est exactement ce qu'aurait fait l'Action, et le seed est déterministe (`seed = YYYYMMDD` de la date de tirage), donc le résultat est identique.
+Les crons GitHub sont « best effort » : un créneau peut être sauté (02/10/2026) ou démarrer avec 5 à 8 h de retard (constaté en octobre et novembre 2026, dont le 06/11). Dans ce cas tu produis le résultat toi-même, dans le sandbox, avec le code versionné du dépôt — ce n'est pas un recalcul maison : c'est exactement ce qu'aurait fait l'Action, et le seed est déterministe (`seed = YYYYMMDD` de la date de tirage), donc le résultat est identique.
 
 ```bash
 cd /tmp && rm -rf qsc && git clone --quiet --depth 50 https://github.com/chg637/qsc-euromillions.git qsc
 cd /tmp/qsc && python3 test_qsc_v40.py && python3 update_master.py && python3 run_qsc.py
 ```
+
+Le bac à sable de la tâche refuse parfois d'exécuter ces scripts (classifieur « Code from External ») : ne contourne pas le refus. Dis-le en une ligne, indique que le run n'est pas encore parti et demande à Charles de lancer le workflow (Actions → Run workflow, champs vides), puis relis `latest.json` quand il confirme.
 
 Durée ~2 min. Le résultat est dans `/tmp/qsc/output/latest.json` (+ `latest.html`, `registre.csv`). Si une étape échoue, restitue l'erreur exacte de l'étape et arrête-toi là.
 
