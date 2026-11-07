@@ -75,7 +75,16 @@ def reconcile(rows, draws, prizes, prize_amounts):
                 r["gagnants_attendus_rang"] = round(N * p_rank(k, s), 1) if N else ""
     return done
 
-def cumul(rows, annee):
+LOTO_PRIX = 2.20           # prix d'une grille Loto (budget commun, décision du 05/11/2026)
+
+def depense_autre_jeu(path, annee, prix):
+    """Dépense de l'année dans l'autre jeu (registre Loto) : une grille inscrite = une grille jouée.
+       Fichier absent = 0 €. Le budget de 520 € est annuel et tous jeux confondus."""
+    if not os.path.exists(path): return 0.0
+    with open(path, newline="", encoding="utf-8") as f:
+        return prix * sum(1 for r in csv.DictReader(f, delimiter=";") if r["draw_date"][:4] == str(annee))
+
+def cumul(rows, annee, autre_depense=0.0):
     played = [r for r in rows if r["match_nums"] != ""]
     n = len(played)
     mn = sum(int(r["match_nums"]) for r in played); ms = sum(int(r["match_stars"]) for r in played)
@@ -96,7 +105,8 @@ def cumul(rows, annee):
             "grilles_en_euros": len(en_euros), "rangs_atteints": sum(1 for r in en_euros if int(r["rang"] or 0) > 0),
             "gagnants_observes": round(obs, 1), "gagnants_attendus": round(att, 1),
             "taux_partage": round(obs / att, 3) if att else None,
-            "depense_annee_eur": round(depense_annee, 2), "budget_eur": q.BUDGET_EUR, "annee": annee}
+            "depense_euromillions_annee_eur": round(depense_annee, 2), "depense_autres_jeux_eur": round(autre_depense, 2),
+            "depense_annee_eur": round(depense_annee + autre_depense, 2), "budget_eur": q.BUDGET_EUR, "annee": annee}
 
 def load_prize_amounts(prizes_path, api_dir):
     """Montants par rang (euros) — pas dans euromillions_PRIZES.csv (gagnants seulement) :
@@ -263,7 +273,7 @@ def build_html(R):
 <div class="grid">{cards}</div>
 <p class="k">{q.EQUIVALENCE}</p>
 <p class="k"><b>Sélection v4.0</b> : univers = les {100*R['selection']['quantile']:.0f} % de grilles les moins jouées ({fmt_int(R['selection']['univers_grilles'])} sur {fmt_int(R['selection']['total_grilles'])}, popularité moyenne ≤ {R['selection']['seuil_gp']:.3f} vs 1,00 pour la grille moyenne), hors motifs sur-joués ; étoiles = {len(R['selection']['etoiles_univers'])} paires du quart le moins joué. Les grilles sont tirées <b>uniformément</b> dans cet univers (seed {R['seed']}) : aucun modèle ne les choisit, parce qu'aucun modèle ne fait mieux que le hasard (voir diagnostic). Cela ne change pas la probabilité de gagner, seulement le partage attendu si la grille gagne.</p>
-<p class="k"><b>Mise</b> : règle {R['mise']['regle']} ; budget {fmt_eur(c['budget_eur'])} par an, dépensé {fmt_eur(c['depense_annee_eur'])} en {c['annee']} (grilles de ce run comprises), reste {fmt_eur(max(0, c['budget_eur'] - c['depense_annee_eur']))}.</p>
+<p class="k"><b>Mise</b> : règle {R['mise']['regle']} ; budget {fmt_eur(c['budget_eur'])} par an tous jeux confondus, dépensé {fmt_eur(c['depense_annee_eur'])} en {c['annee']} (dont {fmt_eur(c['depense_autres_jeux_eur'])} au Loto, grilles de ce run comprises), reste {fmt_eur(max(0, c['budget_eur'] - c['depense_annee_eur']))}.</p>
 {popularity_html(R['popularite'])}
 
 <h2>Tableau de bord cumulatif — protocole vs hasard</h2>
@@ -307,7 +317,7 @@ def build_chat(R):
             f"Sélection : tirage uniforme (seed) parmi les {100*R['selection']['quantile']:.0f} % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard ({R['backtest']['verdict']})\n"
             f"Popularité : {R['popularite']['source']}"
             + (f" — {R['popularite']['n_tirages_nums']} tirages ; étoiles les moins jouées : {', '.join(str(s) for s in R['popularite']['stars_tries'][:4])}.\n" if R['popularite']['estimee'] else " (repli : table estimée indisponible ce run).\n")
-            + f"Budget : {c['depense_annee_eur']:.2f} € dépensés en {c['annee']} sur {c['budget_eur']:.0f} €.\n"
+            + f"Budget : {c['depense_annee_eur']:.2f} € dépensés en {c['annee']} sur {c['budget_eur']:.0f} € (dont {c['depense_autres_jeux_eur']:.2f} € au Loto).\n"
             f"Cumul : {c['match_nums']} numéros trouvés sur {c['grilles']} grilles (attendu {c['attendu_nums']}, écart {c['ecart_nums']:+} ± {c['ic95_nums']}) · mise {c['mise_eur']:.2f} €, gains {c['gains_eur']:.2f} €"
             + (f" · partage observé ×{tp:.2f} sur {c['rangs_atteints']} rang(s)" if tp is not None else "") + f".\n\n"
             f"⚠️ {q.DISCLAIMER}")
@@ -323,6 +333,8 @@ def main():
     ap.add_argument("--today", default=None)
     ap.add_argument("--n-grilles", type=int, default=int(os.environ.get("N_GRILLES") or 0),
                     help="plancher du nombre de grilles ; ne peut que relever la règle jackpot (le budget borne toujours)")
+    ap.add_argument("--autre-registre", default=os.path.join("loto", "output", "registre.csv"),
+                    help="registre Loto, pour le budget annuel commun (absent = 0 €)")
     ap.add_argument("--no-fdj", action="store_true", help="ne pas interroger fdj.fr (tests, rejeu)")
     ap.add_argument("--n-sim", type=int, default=5000)
     a = ap.parse_args()
@@ -356,7 +368,8 @@ def main():
     reg_path = os.path.join(a.out, "registre.csv")
     rows = load_registre(reg_path)
     rapproche = reconcile(rows, draws, prizes, amounts)
-    cum_avant = cumul(rows, draw_date.year)
+    autre_depense = depense_autre_jeu(a.autre_registre, draw_date.year, LOTO_PRIX)
+    cum_avant = cumul(rows, draw_date.year, autre_depense=autre_depense)
 
     # R7 : popularité estimée sur les gagnants par rang (repli proxy UK si impossible)
     pop_table = P.estimate(a.prizes, draws, q.star_pool)
@@ -406,13 +419,14 @@ def main():
                      "jackpot_meur": jp["meur"], "real_nums": "", "real_stars": "", "match_nums": "", "match_stars": "",
                      "rang": "", "gain_eur": "", "gagnants_rang": "", "gagnants_attendus_rang": ""})
     save_registre(reg_path, rows)
-    cum = cumul(rows, draw_date.year)
+    cum = cumul(rows, draw_date.year, autre_depense=autre_depense)
 
     slim = lambda d: {k: {kk: vv for kk, vv in v.items() if kk != "points"} for k, v in d.items()}
     R = {"version": q.VERSION, "run_date": today.isoformat(), "draw_date": draw_iso, "draw_date_fr": draw_fr, "seed": seed,
          "dataset": fp, "jackpot": jp, "n_grilles": n,
          "n_grilles_regle_jackpot": q.n_grids_regle(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
-         "mise": {"regle": regle_txt, "budget_eur": q.BUDGET_EUR, "prix_grille": q.PRIX_GRILLE, "depense_annee_avant_run": round(depense, 2)},
+         "mise": {"regle": regle_txt, "budget_eur": q.BUDGET_EUR, "prix_grille": q.PRIX_GRILLE, "depense_annee_avant_run": round(depense, 2),
+                  "dont_autres_jeux": round(autre_depense, 2)},
          "selection": selection, "popularite": pop_info, "grilles": grids,
          "backtest": {"role": "diagnostic — ne pilote pas la sélection", "meta": meta, "numeros": slim(bt), "verdict": q.verdict(bt, meta),
                       "etoiles": slim(sb), "etoiles_meta": smeta},

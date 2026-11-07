@@ -3,7 +3,9 @@
 update_loto.py — Rafraîchit loto_MASTER.csv et loto_PRIZES.csv depuis l'historique officiel FDJ
 (zip CSV « loto_201911 », règle en vigueur, téléchargé depuis l'API documentaire FDJ).
 Append-only : un tirage déjà présent n'est jamais réécrit. Écrit output/fdj_meta.json (dernier tirage,
-jackpot du dernier tirage, gagnant ou non) pour l'estimation du jackpot par run_loto.py.
+jackpot du dernier tirage, gagnant ou non) pour l'estimation du jackpot par run_loto.py, et conserve
+dans output/api_cache/<année>.json les montants par rang (euros) de l'année en cours et de la précédente,
+pour le registre en euros (v2.0).
 
 Usage : python3 update_loto.py [--dry-run]
 Sortie : 0 si OK, 2 si la FDJ est injoignable, 3 si l'intégrité casse.
@@ -16,7 +18,7 @@ import popularite_loto as P
 FDJ_ZIP = "https://www.sto.api.fdj.fr/anonymous/service-draw-info/v3/documentations/1a2b3c4d-9876-4562-b3fc-2c963f66afp6"
 
 def fetch_rows(retries=3):
-    req = urllib.request.Request(FDJ_ZIP, headers={"User-Agent": "qsc-loto/1.0"})
+    req = urllib.request.Request(FDJ_ZIP, headers={"User-Agent": "qsc-loto/2.0"})
     for i in range(retries):
         try:
             with urllib.request.urlopen(req, timeout=60) as r:
@@ -35,9 +37,13 @@ def parse(it):
     ch = int(it["numero_chance"])
     W = {k: int(it[f"nombre_de_gagnant_au_rang{k}"].replace(" ", ""))
          for k in range(1, 10) if it.get(f"nombre_de_gagnant_au_rang{k}") not in (None, "")}
-    r1 = it.get("rapport_du_rang1", "")
-    r1 = float(r1.replace(",", ".").replace(" ", "")) if r1 else None
-    return d, nums, ch, {"era": 9 if len(W) >= 9 else 6, "w": W, "rapport1": r1}
+    def eur(x):
+        x = (x or "").replace(",", ".").replace(" ", "").replace("\u202f", "").replace("\xa0", "")
+        return float(x) if x else None
+    r1 = eur(it.get("rapport_du_rang1"))
+    rapports = {k: eur(it.get(f"rapport_du_rang{k}")) for k in range(1, 10)}
+    rapports = {k: v for k, v in rapports.items() if v is not None}
+    return d, nums, ch, {"era": 9 if len(W) >= 9 else 6, "w": W, "rapport1": r1, "rapports": rapports}
 
 def main():
     ap = argparse.ArgumentParser()
@@ -52,7 +58,7 @@ def main():
         rows = fetch_rows()
     except Exception as e:
         print(f"FDJ injoignable : {e}", file=sys.stderr); sys.exit(2)
-    added, padded, last = [], [], None
+    added, padded, last, amounts = [], [], None, {}
     for it in rows:
         try:
             d, nums, ch, pz = parse(it)
@@ -63,7 +69,9 @@ def main():
         elif known[d][1] != nums or known[d][2] != ch:
             print(f"CONFLIT {d} : CSV {known[d][1:]} vs FDJ {(nums, ch)} — CSV conservé", file=sys.stderr)
         if d not in prizes:
-            prizes[d] = pz; padded.append(d)
+            prizes[d] = {k: v for k, v in pz.items() if k != "rapports"}; padded.append(d)
+        if d[:4] >= str(date.today().year - 1) and pz["era"] == 9:
+            amounts.setdefault(d[:4], []).append({"date": d, "w": pz["w"], "rapports": pz["rapports"]})
         if last is None or d > last[0]:
             last = (d, pz)
     new_draws = sorted(known.values())
@@ -74,7 +82,10 @@ def main():
     if a.dry_run: return
     if added: q.save_master(a.csv, new_draws)
     if padded: P.save_prizes(a.prizes, prizes)
-    os.makedirs(a.out, exist_ok=True)
+    os.makedirs(os.path.join(a.out, "api_cache"), exist_ok=True)   # montants par rang pour le registre en euros
+    for year, items in amounts.items():
+        with open(os.path.join(a.out, "api_cache", f"{year}.json"), "w", encoding="utf-8") as f:
+            json.dump(sorted(items, key=lambda x: x["date"]), f, ensure_ascii=False)
     meta = {"fetched_at": date.today().isoformat(), "added": sorted(added), "last_draw": None,
             "fingerprint": q.dataset_fingerprint(new_draws, "csv+fdj")}
     if last:

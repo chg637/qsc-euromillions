@@ -1,32 +1,48 @@
 # -*- coding: utf-8 -*-
 """
-QSC Loto v1.0 — Module Loto FDJ (5 numéros sur 49 + 1 numéro Chance sur 10, règle en vigueur
+QSC Loto v2.0 — Module Loto FDJ (5 numéros sur 49 + 1 numéro Chance sur 10, règle en vigueur
 depuis le 06/10/2008 ; tirages lundi, mercredi, samedi).
 
-Transposition directe du protocole QSC EuroMillions v3.9 :
-  - six selectors backtestés en walk-forward (step 1), null hypergéométrique exacte, max-statistic ;
-  - popularité des numéros ESTIMÉE sur les gagnants par rang FDJ (ratio gagnants à 3 numéros /
-    gagnants à 2 numéros, toutes classes Chance confondues), popularité du numéro Chance estimée
-    sur le ratio (k numéros + Chance) / (k numéros sans Chance), rangs 3/4, 5/6, 7/8 (règle 2017+) ;
-  - univers de sélection = décile le moins populaire des C(49,5) = 1 906 884 grilles, hors motifs
-    sur-joués ; le porteur ne fait que départager dedans ; numéro Chance dans le tiers le moins joué ;
-  - consensus stricte (dégénère sans modèle significatif), rotation narrative, registre append-only.
+Alignement sur QSC EuroMillions v4.0 (chantier du 07/11/2026, suite à l'audit indépendant du
+04/11/2026 et aux décisions de Charles du 05/11/2026). Changements vs Loto v1.0 :
+  A1  plus de « porteur », de rotation ni de consensus. Les six selectors sont indiscernables du
+      hasard (audit EuroMillions : p global 0,67, classement sans stabilité temporelle). La grille
+      est tirée UNIFORMÉMENT, par seed déterministe, dans l'univers des 10 % de grilles les moins
+      jouées (table de popularité estimée sur les gagnants par rang FDJ), numéro Chance tiré dans
+      le tiers le moins joué. Le backtest reste calculé et publié comme DIAGNOSTIC, il ne pilote rien.
+  A2  nombre de grilles = 1 par défaut, 2 à partir de 100 M€, 3 à 150 M€, 4 à 200 M€ (mêmes paliers
+      que l'EuroMillions ; le Loto n'a jamais dépassé 30 M€, donc 1 grille en pratique), borné par
+      le budget annuel de 520 € TOUS JEUX CONFONDUS (le runner lit aussi le registre EuroMillions).
+  A3  jackpot : montant officiel du prochain tirage lu sur fdj.fr par run_loto.py, repli sur
+      l'estimation du dernier jackpot non gagné si la page est inaccessible ou ne porte pas la
+      date du tirage visé.
+  A4  registre en euros : rang atteint, gain réel du rang (montants conservés dans
+      output/api_cache/), gagnants observés vs attendus, jackpot du jour.
+  A5  EV nette théorique par grille (rang 1 avec partage Poisson aux ventes estimées + rangs 2 à 9
+      aux montants médians récents) ; plus de consensus ni de porteur dans le livrable.
+
+Hérité de v1.0 : six selectors backtestés en walk-forward (step 1), null hypergéométrique exacte,
+max-statistic ; popularité des numéros ESTIMÉE sur les gagnants par rang FDJ (ratio gagnants à 3
+numéros / gagnants à 2 numéros), popularité du numéro Chance sur le ratio (k numéros + Chance) /
+(k numéros sans Chance) ; univers = décile le moins populaire des C(49,5) = 1 906 884 grilles hors
+motifs sur-joués ; registre append-only.
 
 Rangs FDJ. Règle 2008-2017 (6 rangs) : 1 = 5+C, 2 = 5, 3 = 4 (avec ou sans C), 4 = 3, 5 = 2, 6 = C seul.
-Règle 2017+ (9 rangs) : 1 = 5+C, 2 = 5, 3 = 4+C, 4 = 4, 5 = 3+C, 6 = 3, 7 = 2+C, 8 = 2, 9 = C seul.
+Règle 2017+ (9 rangs) : 1 = 5+C, 2 = 5, 3 = 4+C, 4 = 4, 5 = 3+C, 6 = 3, 7 = 2+C, 8 = 2, 9 = Chance avec
+0 ou 1 numéro (vérifié sur les gagnants publiés : rapport rang 9 / rang 8 = 1,44 observé pour 1,48 attendu).
 Les gagnants « 3 numéros » et « 2 numéros » existent dans les deux règles → 2 800+ tirages pour les
 numéros ; les ratios avec/sans Chance n'existent que depuis 2017 → ~1 500 tirages pour la Chance.
 
 DISCLAIMER (jamais omis dans les livrables construits sur ce module) :
 Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain.
-EV nette structurellement négative. Les edges backtestés peuvent être du bruit statistique —
-méthodologie documentée, pas un oracle.
+EV nette négative à presque tous les jackpots, proche de zéro seulement au maximum historique de 30 M€.
+Les écarts backtestés sont du bruit statistique — méthodologie documentée, pas un oracle.
 """
 import csv, math, random, itertools, bisect, hashlib, os
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
-VERSION = "1.0"
+VERSION = "2.0"
 GAME = "Loto"
 N_POOL, K_PICK = 49, 5
 ALL_NUMS = list(range(1, N_POOL + 1))
@@ -36,6 +52,10 @@ CHANCE_BASELINE = 1 / 10
 N_COMBOS = math.comb(N_POOL, K_PICK)          # 1 906 884
 P_RANG1 = 1 / (N_COMBOS * 10)                 # 1/19 068 840
 PRIX_GRILLE = 2.20
+BUDGET_EUR = 520.0            # plafond annuel de mise, tous jeux confondus (décision du 05/11/2026)
+PALIERS_MEUR = (100, 150, 200)   # 1 grille, +1 à chaque palier franchi (mêmes paliers que l'EuroMillions)
+VENTES_DEFAUT = 3_900_000     # grilles vendues par tirage (médiane 2026 estimée sur les rangs 6 à 9)
+EV_RANGS_BAS_DEFAUT = 0.84    # EV des rangs 2 à 9 par grille (montants du 04/11/2026), si le cache de montants manque
 DRAW_WEEKDAYS = (0, 2, 5)                     # lundi, mercredi, samedi
 
 # ---------------------------------------------------------------- DONNÉES
@@ -250,8 +270,8 @@ def relative_popularity(nums, chance=None):
     if chance: p *= chance_popularity(chance)
     return p
 
-def expected_cowinners(nums, chance=None, n_tickets=6_000_000):
-    """Co-gagnants attendus au rang 1 si la grille gagne (descriptif ; ~6 M de grilles par tirage)."""
+def expected_cowinners(nums, chance=None, n_tickets=VENTES_DEFAUT):
+    """Co-gagnants attendus au rang 1 si la grille gagne (descriptif ; ~3,9 M de grilles par tirage)."""
     return n_tickets * P_RANG1 * relative_popularity(nums, chance)
 
 IMPOP_QUANTILE = 0.10
@@ -356,49 +376,79 @@ def backtest_chance(draws, burn_in=150, step=1, seed=0, n_sim=5000):
 def verdict(bt, meta):
     if any(r["significant"] for r in bt.values()):
         return ("Au moins un modèle reste significatif après correction des tests multiples "
-                f"(p global = {meta['p_global']:.3f}) — à examiner avec prudence : un seul échantillon.")
+                f"(p global = {meta['p_global']:.3f}) — à examiner avec prudence (un seul échantillon) ; la sélection reste uniforme.")
     return ("Aucun modèle ne se distingue du hasard sur cet échantillon "
-            f"(p global = {meta['p_global']:.2f}) — le choix des porteurs est méthodologique, pas inférentiel.")
+            f"(p global = {meta['p_global']:.2f}) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.")
 
-# ---------------------------------------------------------------- GÉNÉRATION
+# ---------------------------------------------------------------- GÉNÉRATION (A1, A2)
 
-def best_grid(model_name, draws, avoid=None, max_ov=2, universe=None):
-    grids = universe if universe is not None else impopular_universe()[0]
-    scores = CATALOG[model_name]["fn"](draws)
-    best, key = None, None
-    for combo in grids:
-        if avoid and any(overlap(combo, g) > max_ov for g in avoid): continue
-        k = sum(scores[n] for n in combo)
-        if key is None or k > key: best, key = combo, k
-    return tuple(sorted(best)) if best else None
+def draw_grids(seed, n, universe=None, chance_univ=None, max_ov=2):
+    """A1 — n grilles tirées uniformément (random.Random(seed)) dans l'univers impopulaire,
+       recouvrement <= max_ov numéros entre grilles, numéro Chance tiré dans l'univers Chance sans
+       répétition tant que possible. Déterministe : même seed + même table -> mêmes grilles."""
+    grids_u = universe if universe is not None else impopular_universe()[0]
+    ch_u = list(chance_univ if chance_univ is not None else chance_universe())
+    rng = random.Random(seed)
+    out, used = [], set()
+    tries = 0
+    while len(out) < n:
+        g = grids_u[rng.randrange(len(grids_u))]
+        tries += 1
+        if any(overlap(g, h) > max_ov for h, _ in out) and tries < 10_000:
+            continue
+        pool = [c for c in ch_u if c not in used] or ch_u
+        c = pool[rng.randrange(len(pool))]
+        used.add(c)
+        out.append((tuple(sorted(g)), c))
+    return out
 
-def best_chance(model_name, draws, avoid=None, universe=None):
-    cands = universe if universe is not None else chance_universe()
-    sc = CHANCE_CATALOG[model_name](draws)
-    avoid = set(avoid or [])
-    pool = [c for c in cands if c not in avoid] or cands
-    return max(pool, key=lambda c: sc.get(c, 0))
+def n_grids_regle(jackpot_meur):
+    """A2 — 1 grille, +1 par palier franchi (100, 150, 200 M€)."""
+    return 1 + sum(1 for p in PALIERS_MEUR if jackpot_meur >= p)
 
-def n_grids(jackpot_meur, plancher=0, defaut=3):
-    """Loto : 3 grilles par défaut (une par porteur du podium), +1 par tranche de 10 M€ au-delà de 10 M€.
-       `plancher` ne fait que relever."""
-    regle = defaut + max(0, math.floor((jackpot_meur - 10) / 10))
-    return max(regle, int(plancher or 0))
+def n_grids(jackpot_meur, plancher=0, depense_annee=0.0, budget=None, prix=None):
+    """Nombre de grilles du run : max(règle jackpot, plancher), borné par le budget restant de
+       l'année, tous jeux confondus (0 si le budget est atteint : livrable publié sans grille)."""
+    budget = BUDGET_EUR if budget is None else budget
+    prix = PRIX_GRILLE if prix is None else prix
+    regle = max(n_grids_regle(jackpot_meur), int(plancher or 0))
+    reste = max(0, int((budget - depense_annee + 1e-9) // prix))
+    return min(regle, reste)
 
-def consensus_grid(bt, draws):
-    sig = {k: r for k, r in bt.items() if r.get("significant")}
-    if not sig: return None
-    agg = {x: 0.0 for x in ALL_NUMS}
-    for name, r in sig.items():
-        w = max(r["edge"], 0) + 0.01; sc = CATALOG[name]["fn"](draws); mx = max(sc.values()) or 1
-        for x in ALL_NUMS: agg[x] += w * sc[x]/mx
-    return top5(agg)
+# ---------------------------------------------------------------- RANGS, VENTES, EV (A4, A5)
+# Probabilité exacte de chaque rang de la règle 2017+ (9 rangs) pour une grille donnée.
 
-def rank_selectors(bt, ineligible_first=None):
-    order = sorted(bt, key=lambda k: -bt[k]["edge"])
-    if ineligible_first and order and order[0] == ineligible_first and len(order) > 1:
-        order[0], order[1] = order[1], order[0]
-    return order
+_PK = {k: math.comb(5, k) * math.comb(44, 5 - k) / N_COMBOS for k in range(6)}   # k bons numéros
+
+def p_of_rank():
+    """{rang: probabilité} règle 2017+. Rang 9 = Chance avec 0 ou 1 numéro."""
+    return {1: _PK[5] / 10, 2: _PK[5] * 0.9, 3: _PK[4] / 10, 4: _PK[4] * 0.9,
+            5: _PK[3] / 10, 6: _PK[3] * 0.9, 7: _PK[2] / 10, 8: _PK[2] * 0.9,
+            9: (_PK[0] + _PK[1]) / 10}
+
+def rang_of(k, c):
+    """Rang (1-9, règle 2017+) pour k numéros trouvés et c = 1 si la Chance est trouvée ; 0 si rien."""
+    if c:
+        return {5: 1, 4: 3, 3: 5, 2: 7}.get(k, 9)
+    return {5: 2, 4: 4, 3: 6, 2: 8}.get(k, 0)
+
+def ventes_estimees(W):
+    """Grilles vendues, estimées par les gagnants des rangs bas (W_r / p_r moyennés sur les rangs 5 à 9 :
+       chacun compte des milliers de gagnants). W = {rang: gagnants}. None si données insuffisantes."""
+    p = p_of_rank()
+    est = [W[r] / p[r] for r in (5, 6, 7, 8, 9) if W.get(r, 0) > 0]
+    return sum(est) / len(est) if len(est) >= 3 else None
+
+def ev_rangs_bas(montants):
+    """EV (euros) des rangs 2 à 9 par grille, d'après {rang: montant médian}."""
+    p = p_of_rank()
+    return sum(p[r] * float(montants.get(r, 0.0)) for r in range(2, 10))
+
+def ev_grille(jackpot_meur, rel_pop, ventes=VENTES_DEFAUT, ev_bas=EV_RANGS_BAS_DEFAUT):
+    """EV nette théorique d'une grille : rang 1 avec partage Poisson (lambda = N p1 rho) + rangs 2-9 - prix."""
+    lam = ventes * P_RANG1 * rel_pop
+    share = (1 - math.exp(-lam)) / lam if lam > 1e-12 else 1.0
+    return jackpot_meur * 1e6 * P_RANG1 * share + ev_bas - PRIX_GRILLE
 
 # ---------------------------------------------------------------- DIAGNOSTIC / CALENDRIER
 
@@ -423,7 +473,9 @@ def seed_from_draw_date(d):
 
 FORBIDDEN = ["prometteur", "tendance favorable", "momentum favorable", "numéro gagnant", "va sortir", "bonne chance"]
 DISCLAIMER = ("Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. "
-              "EV nette structurellement négative. Les edges backtestés peuvent être du bruit statistique — "
+              "EV nette négative à presque tous les jackpots (environ −1,3 € par grille à 2 M€, −0,7 € à 13 M€), "
+              "proche de zéro seulement au maximum historique de 30 M€. "
+              "Les écarts backtestés sont du bruit statistique, mesuré comme tel — "
               "méthodologie documentée, pas un oracle.")
 EQUIVALENCE = ("Toutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/19 068 840 au rang 1. "
                "Le pipeline choisit comment jouer, jamais mieux jouer.")
