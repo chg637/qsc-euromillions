@@ -195,6 +195,23 @@ def run():
     t("checklist passe", q.checklist(html, chat, fp, 20260908)[0])
     t("checklist bloque lexique interdit", not q.checklist(html + " numéro gagnant", chat, fp, 20260908)[0])
 
+    # --- budget commun EuroMillions + Loto (07/11/2026)
+    import os, tempfile, run_qsc as RQ
+    with tempfile.TemporaryDirectory() as td:
+        pl = os.path.join(td, "registre.csv")
+        with open(pl, "w", encoding="utf-8") as f:
+            f.write("run_date;draw_date;grid\n2026-10-12;2026-10-14;1\n2026-11-02;2026-11-04;1\n2025-12-27;2025-12-27;1\n")
+        t("budget commun : dépense Loto de l'année", abs(RQ.depense_autre_jeu(pl, 2026, 2.20) - 4.40) < 1e-9)
+        t("budget commun : autre année ignorée", abs(RQ.depense_autre_jeu(pl, 2025, 2.20) - 2.20) < 1e-9)
+        t("budget commun : registre Loto absent = 0 €", RQ.depense_autre_jeu(os.path.join(td, "nope.csv"), 2026, 2.20) == 0.0)
+    rows_b = [{"draw_date": "2026-11-04", "match_nums": "1", "match_stars": "0", "gain_eur": "", "rang": "", "gagnants_rang": "", "gagnants_attendus_rang": ""}]
+    cb = RQ.cumul(rows_b, 2026, autre_depense=100.0)
+    t("budget commun : cumul = EuroMillions + Loto", cb["depense_annee_eur"] == 102.5 and cb["depense_autres_jeux_eur"] == 100.0
+      and cb["depense_euromillions_annee_eur"] == 2.5)
+    t("budget commun : cumul sans autre jeu inchangé", RQ.cumul(rows_b, 2026)["depense_annee_eur"] == 2.5)
+    t("budget commun : le Loto réduit les grilles restantes", q.n_grids(150, depense_annee=517.5 + 0.0) == 1
+      and q.n_grids(150, depense_annee=RQ.cumul(rows_b, 2026, autre_depense=517.5)["depense_annee_eur"]) == 0)
+
     passed = sum(1 for _, ok in T if ok)
     for name, ok in T:
         print(("PASS" if ok else "FAIL"), name)

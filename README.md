@@ -35,21 +35,19 @@ python3 update_master.py            # ~15 s, dépend de l'API
 python3 run_qsc.py [--jackpot 95] [--no-fdj]   # ~30 s (5 000 simulations null)
 ```
 
-## QSC Loto (dossier `loto/`) — différé
+## QSC Loto (dossier `loto/`) — v2.0
 
-**Crons désactivés le 05/11/2026** : le Loto est reporté tant que son module n'est pas aligné sur la v4.0 (tirage uniforme, 1 grille par tirage, budget commun). Le code reste en place et `workflow_dispatch` fonctionne.
-
-Même protocole (version v3.9) transposé au Loto FDJ (5 numéros sur 49 + numéro Chance sur 10, tirages lundi / mercredi / samedi) : six selectors backtestés, null exacte 5 parmi 49, popularité des numéros et du numéro Chance estimée sur les gagnants par rang publiés par la FDJ (2 819 tirages depuis 2008), univers impopulaire, registre append-only, 3 grilles par défaut (+1 par tranche de 10 M€ au-delà de 10 M€).
+Réactivé le 07/11/2026 avec le module Loto v2.0, aligné sur la v4.0 de l'EuroMillions : tirage uniforme dans l'univers des 10 % de grilles les moins jouées (numéro Chance dans les 3 les moins joués), 1 grille par tirage (+1 à 100, 150 et 200 M€), budget de 520 € par an **commun** aux deux jeux, jackpot officiel lu sur fdj.fr, registre en euros, EV nette théorique par grille. Plus de porteur, de rotation ni de consensus. Tirages lundi / mercredi / samedi. Détails et constats : `RAPPORT_application_loto_v20.md`.
 
 | Fichier | Rôle |
 |---|---|
 | `loto/loto_MASTER.csv`, `loto/loto_PRIZES.csv` | Historique officiel FDJ (tirages ; gagnants par rang, règle 6 rangs 2008-2017 puis 9 rangs). |
-| `loto/qsc_loto.py`, `loto/popularite_loto.py` | Module et estimateur de popularité (stdlib). |
-| `loto/update_loto.py`, `loto/run_loto.py` | Refresh depuis le zip FDJ `loto_201911` ; pipeline complet → `loto/output/`. |
-| `loto/test_loto.py` | 49 tests. |
-| `.github/workflows/loto.yml` | Crons lun/mer/sam (06:20, 09:20, 12:50 UTC) + garde d'idempotence. |
-| `PROMPT_tache_cloud_loto.md` | Prompt de la tâche Claude cloud Loto. |
+| `loto/qsc_loto.py`, `loto/popularite_loto.py` | Module (sélection uniforme, rangs, ventes, EV, backtest diagnostic) et estimateur de popularité (stdlib). |
+| `loto/update_loto.py`, `loto/run_loto.py` | Refresh depuis le zip FDJ `loto_201911` (tirages, gagnants, montants par rang dans `loto/output/api_cache/`) ; pipeline complet → `loto/output/`. |
+| `loto/test_loto.py` | 110 tests. |
+| `.github/workflows/loto.yml` | Cinq crons lun/mer/sam (veille 22:29, nuit 02:43, 06:20, 09:20, 12:50 UTC) avec garde d'idempotence + `workflow_dispatch` (inputs `jackpot_meur`, `n_grilles`). |
+| `PROMPT_tache_cloud_loto.md` | Prompt de la tâche Claude cloud Loto (lecteur + fallback). |
 
 ```bash
-cd loto && python3 test_loto.py && python3 update_loto.py && python3 run_loto.py   # ~50 s
+cd loto && python3 test_loto.py && python3 update_loto.py && python3 run_loto.py [--jackpot 13] [--no-fdj]   # ~45 s
 ```
