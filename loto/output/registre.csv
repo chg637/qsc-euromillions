@@ -1,4 +1,5 @@
-run_date;draw_date;grid;model;nums;chance;seed;real_nums;real_chance;match_nums;match_chance
-2026-10-13;2026-10-14;1;Fréquence globale;15-22-35-38-41;1;20261014;;;;
-2026-10-13;2026-10-14;2;Lag / retard normalisé;27-33-37-40-41;2;20261014;;;;
-2026-10-13;2026-10-14;3;Momentum;4-16-35-42-46;10;20261014;;;;
+run_date;draw_date;grid;model;nums;chance;seed;jackpot_meur;real_nums;real_chance;match_nums;match_chance;rang;gain_eur;gagnants_rang;gagnants_attendus_rang
+2026-10-13;2026-10-14;1;Fréquence globale;15-22-35-38-41;1;20261014;;4-20-32-36-46;5;0;0;0;0.0;;
+2026-10-13;2026-10-14;2;Lag / retard normalisé;27-33-37-40-41;2;20261014;;4-20-32-36-46;5;0;0;0;0.0;;
+2026-10-13;2026-10-14;3;Momentum;4-16-35-42-46;10;20261014;;4-20-32-36-46;5;2;0;8;5.3;182334;197780.9
+2026-11-09;2026-11-09;1;uniforme-univers-R7;16-24-32-35-46;1;20261109;14.0;;;;;;;;
