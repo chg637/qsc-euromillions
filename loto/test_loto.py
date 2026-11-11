@@ -183,6 +183,31 @@ def run():
     t("ev_bas_recent : cache vide → défaut", R.ev_bas_recent({}) == (q.EV_RANGS_BAS_DEFAUT, False))
     t("registre v1.0 : colonnes absentes complétées", all(k in R.load_registre("output/registre.csv")[0] for k in R.REG_FIELDS) if __import__("os").path.exists("output/registre.csv") else True)
 
+
+    # ---- v2.1 : fiabilité du run (alignement sur EuroMillions v4.1, 11/11/2026)
+    t("fraîcheur : dataset à jour = 0 tirage de retard", R.retard_dataset("2026-11-09", date(2026, 11, 11)) == 0)
+    t("fraîcheur : un tirage de retard", R.retard_dataset("2026-11-07", date(2026, 11, 11)) == 1)
+    t("fraîcheur : trois tirages de retard", R.retard_dataset("2026-11-04", date(2026, 11, 14)) == 3)
+    t("tirage précédent : samedi → mercredi", R.previous_draw_date(date(2026, 11, 14)) == date(2026, 11, 11))
+    fm = {"last_draw": {"date": "2026-11-07", "has_winner": False, "jackpot_eur": 13000000.0}}
+    jp1 = R.estimate_jackpot(fm, None, date(2026, 11, 11), use_fdj=False, retard=1)
+    t("jackpot : estimation sur dataset en retard marquée périmée", jp1["source"] == "estimation périmée" and jp1["fiable"] is False)
+    t("jackpot : estimation sur dataset à jour inchangée", R.estimate_jackpot(fm, None, date(2026, 11, 9), use_fdj=False)["source"] == "estimation")
+    ligne = {"run_date": "2026-11-09", "draw_date": "2026-11-09", "grid": 1, "nums": "4-5-14-35-46", "chance": 8,
+             "real_nums": "", "real_chance": "", "match_nums": "", "match_chance": "", "rang": "", "gain_eur": "",
+             "gagnants_rang": "", "gagnants_attendus_rang": ""}
+    tir = [("2026-11-09", (4, 5, 14, 37, 41), 8)]
+    pzs = {"2026-11-09": {"era": 9, "w": {k: 1000 * k for k in range(1, 10)}, "rapport1": None}}
+    rg_att = q.rang_of(3, 1)
+    l1 = [dict(ligne)]
+    d1 = R.reconcile(l1, tir, {}, {})
+    t("rapprochement : numéros connus, rapports pas encore → rang en attente", l1[0]["match_nums"] == "3" and l1[0]["rang"] == "" and len(d1) == 1)
+    d2 = R.reconcile(l1, tir, pzs, {"2026-11-09": {rg_att: 20.0}})
+    t("rapprochement : gain soldé après coup annoncé au run suivant", len(d2) == 1 and d2[0]["rang"] == str(rg_att) and d2[0]["gain_eur"] == 20.0)
+    l2 = [dict(ligne)]
+    d3 = R.reconcile(l2, tir, pzs, {"2026-11-09": {rg_att: 20.0}})
+    t("rapprochement : tout connu d'un coup → une seule ligne annoncée", len(d3) == 1)
+
     passed = sum(1 for _, ok in T if ok)
     for name, ok in T: print(("PASS" if ok else "FAIL"), name)
     print(f"\n{passed}/{len(T)} tests OK")

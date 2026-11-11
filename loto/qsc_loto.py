@@ -42,7 +42,7 @@ import csv, math, random, itertools, bisect, hashlib, os
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
-VERSION = "2.0"
+VERSION = "2.1"   # 11/11/2026 : fiabilité du run, alignée sur EuroMillions v4.1 ; méthode inchangée
 GAME = "Loto"
 N_POOL, K_PICK = 49, 5
 ALL_NUMS = list(range(1, N_POOL + 1))
