@@ -12,7 +12,7 @@ Usage : python3 run_qsc.py [--csv ...] [--out output] [--jackpot 95] [--today 20
 Sortie : code 0 si checklist verte, 4 sinon (le livrable est quand même écrit, marqué KO).
 """
 import argparse, csv, json, os, re, sys, math, html as H, urllib.request, urllib.error
-from datetime import date
+from datetime import date, timedelta
 import qsc_v40 as q
 import popularite as P
 
@@ -67,8 +67,13 @@ def reconcile(rows, draws, prizes, prize_amounts):
         if r["match_nums"] != "" and r["rang"] == "" and r["draw_date"] in prizes:
             k, s = int(r["match_nums"]), int(r["match_stars"])
             W = prizes[r["draw_date"]]; rg = RANG.get((k, s))
+            # v4.1 : un rang atteint sans montant connu n'est pas soldé à 0 € ; on attend le montant.
+            if rg and (k, s) not in prize_amounts.get(r["draw_date"], {}):
+                continue
             r["rang"] = rg or 0
-            r["gain_eur"] = prize_amounts.get(r["draw_date"], {}).get((k, s), 0.0) if rg else 0.0
+            r["gain_eur"] = prize_amounts[r["draw_date"]][(k, s)] if rg else 0.0
+            if not any(r is d for d in done):   # v4.1 : rang rempli après coup → annoncé quand même
+                done.append(r)
             if rg:
                 N = ventes_estimees(W)
                 r["gagnants_rang"] = W.get((k, s), "")
@@ -148,34 +153,77 @@ def popularity_report(table):
 
 FDJ_URL = "https://www.fdj.fr/jeux-de-tirage/euromillions-my-million"
 
-def jackpot_fdj(timeout=20):
-    """Montant officiel du prochain tirage lu sur la page EuroMillions de fdj.fr
-       (motif « NNN Millions d'euros à gagner »). None si la page est inaccessible ou illisible."""
+def parse_jackpot_fdj(page, draw_iso=None):
+    """Extrait le jackpot EuroMillions (M€) de la page fdj.fr. Retourne (montant|None, raison).
+       v4.1 : la page porte l'annonce du prochain tirage dans un bloc de données
+       ("amount":"17 millions €" … "megaJackpot" … "date":"2026-11-13T21:45…"). On lit CE bloc,
+       reconnu par la clé megaJackpot (propre à l'EuroMillions : la page affiche aussi le Loto,
+       le Super Loto, le Keno), et on exige que sa date soit celle du tirage visé. L'ancien motif
+       « NNN Millions d'euros à gagner » ne sert plus que de secours."""
+    txt = page.replace('\\"', '"')
+    blocs = re.findall(r'"amount":"(\d{1,3})\s*millions?\s*€"[^{}]{0,400}?"megaJackpot"[^{}]{0,600}?"date":"(\d{4}-\d{2}-\d{2})T', txt)
+    if blocs:
+        for montant, d in blocs:
+            if draw_iso is None or d == draw_iso:
+                v = float(montant)
+                return (v, "ok") if 17 <= v <= 250 else (None, f"montant hors bornes ({montant} M€)")
+        return None, f"page lue, mais annonce pour le {blocs[0][1]} et non le {draw_iso}"
+    m = re.search(r"(\d{2,3})\s*Millions\s*d(?:&#x27;|'|’)euros\s*à\s*gagner", page, flags=re.I)
+    if m and 17 <= float(m.group(1)) <= 250:
+        return float(m.group(1)), "ok (ancien motif)"
+    return None, "page lue, montant introuvable (mise en page changée ?)"
+
+def jackpot_fdj(draw_iso=None, timeout=20):
+    """Montant officiel du prochain tirage lu sur fdj.fr. Retourne (montant|None, raison) :
+       la raison distingue une page inaccessible d'une page lue mais non comprise."""
     try:
-        req = urllib.request.Request(FDJ_URL, headers={"User-Agent": "Mozilla/5.0 (qsc-euromillions/4.0)"})
+        req = urllib.request.Request(FDJ_URL, headers={"User-Agent": "Mozilla/5.0 (qsc-euromillions/4.1)"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             page = r.read().decode("utf-8", "replace")
     except Exception as e:
-        print(f"fdj.fr inaccessible : {e}", file=sys.stderr); return None
-    m = re.search(r"(\d{2,3})\s*Millions\s*d(?:&#x27;|'|’)euros\s*à\s*gagner", page)
-    if not m: return None
-    v = float(m.group(1))
-    return v if 17 <= v <= 250 else None
+        print(f"fdj.fr inaccessible : {e}", file=sys.stderr); return None, f"page inaccessible ({type(e).__name__})"
+    return parse_jackpot_fdj(page, draw_iso)
 
-def estimate_jackpot(api_meta, override, use_fdj=True):
+def previous_draw_date(draw_date):
+    """Tirage précédant draw_date (mardi/vendredi)."""
+    d = draw_date - timedelta(days=1)
+    while d.weekday() not in (1, 4):
+        d -= timedelta(days=1)
+    return d
+
+def retard_dataset(dernier_iso, draw_date):
+    """Nombre de tirages déjà joués qui manquent au dataset (0 = à jour)."""
+    n, d = 0, previous_draw_date(draw_date)
+    while d.isoformat() > dernier_iso:
+        n += 1; d = previous_draw_date(d)
+    return n
+
+def estimate_jackpot(api_meta, override, use_fdj=True, draw_iso=None, retard=0):
+    """Jackpot du run. Ordre : montant fourni, fdj.fr, estimation API. v4.1 : l'estimation n'est
+       fiable que si le dernier tirage connu est bien le précédent (retard = 0) ; sinon elle est
+       marquée « estimation périmée » et le nombre de grilles est à confirmer à la main."""
     if override is not None:
-        return {"meur": float(override), "source": "fourni", "note": "montant officiel fourni au run"}
+        return {"meur": float(override), "source": "fourni", "note": "montant officiel fourni au run", "fiable": True}
     last = (api_meta or {}).get("last_draw") or {}
     jp = last.get("jackpot_eur")
     est = round(jp / 1e6, 1) if (jp and not last.get("has_winner")) else 17.0
+    raison = "fdj.fr non interrogé"
     if use_fdj:
-        off = jackpot_fdj()
-        if off is not None and off >= est - 1:
-            return {"meur": off, "source": "fdj.fr", "note": f"montant officiel lu sur fdj.fr (estimation API : {est:.0f} M€)"}
+        off, raison = jackpot_fdj(draw_iso)
+        if off is not None and (retard > 0 or off >= est - 1):
+            return {"meur": off, "source": "fdj.fr", "fiable": True,
+                    "note": f"montant officiel lu sur fdj.fr (estimation API : {est:.0f} M€)"}
+        if off is not None:
+            raison = f"fdj.fr donne {off:.0f} M€, sous l'estimation API ({est:.0f} M€) : écarté"
+    if retard > 0:
+        return {"meur": est, "source": "estimation périmée", "fiable": False,
+                "note": f"fdj.fr : {raison}. Le dataset a {retard} tirage(s) de retard (dernier connu : {last.get('date', '?')}) : "
+                        f"ce montant n'est PAS celui du prochain tirage. Nombre de grilles à confirmer avec le jackpot officiel."}
     if jp and not last.get("has_winner"):
-        return {"meur": est, "source": "estimation",
-                "note": f"fdj.fr indisponible — report du jackpot du {last['date']} sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"}
-    return {"meur": 17.0, "source": "estimation", "note": "fdj.fr indisponible — jackpot remis à ~17 M€ après un gagnant (ou API muette)"}
+        return {"meur": est, "source": "estimation", "fiable": False,
+                "note": f"fdj.fr : {raison}. Report du jackpot du {last['date']} sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"}
+    return {"meur": 17.0, "source": "estimation", "fiable": False,
+            "note": f"fdj.fr : {raison}. Jackpot remis à ~17 M€ après un gagnant (ou API muette)"}
 
 def ev_grille(jackpot_meur, rel_pop, ventes=23_000_000, ev_rangs_bas=0.47):
     """EV nette théorique d'une grille : rang 1 avec partage Poisson (λ = N·p₁·ρ) + rangs 2-13 (≈0,47 €)."""
@@ -357,6 +405,17 @@ def main():
             with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f: f.write(f"## Run QSC sans objet\n\n{msg}\n")
         sys.exit(0)
 
+    # v4.1 : fraîcheur. Le contrôle d'intégrité ne voit que les trous à l'intérieur du dataset ;
+    # ici on compare le dernier tirage connu au tirage précédant celui du run.
+    retard = retard_dataset(draws[-1][0], draw_date)
+    fp["retard_tirages"] = retard
+    if retard:
+        fp["alertes"].append(f"dataset en retard de {retard} tirage(s) : dernier connu {draws[-1][0]}, "
+                             f"attendu {previous_draw_date(draw_date).isoformat()} (rapprochement et jackpot estimé incomplets)")
+    maj = os.environ.get("UPDATE_STATUS", "")
+    if maj and maj != "success":
+        fp["alertes"].append("mise à jour du CSV en échec ce run (API injoignable ou tirage manquant) : calcul sur le CSV existant")
+
     api_meta = None
     p = os.path.join(a.out, "api_meta.json")
     if os.path.exists(p):
@@ -384,7 +443,7 @@ def main():
     chi2, pchi = q.chi2_uniformity(draws)
 
     # jackpot officiel / nombre de grilles sous budget
-    jp = estimate_jackpot(api_meta, a.jackpot, use_fdj=not a.no_fdj)
+    jp = estimate_jackpot(api_meta, a.jackpot, use_fdj=not a.no_fdj, draw_iso=draw_iso, retard=retard)
     deja_ce_tirage = sum(1 for r in rows if r["draw_date"] == draw_iso)
     depense = cum_avant["depense_annee_eur"] - q.PRIX_GRILLE * deja_ce_tirage   # un re-run ne compte pas deux fois ses grilles
     n = q.n_grids(jp["meur"], plancher=a.n_grilles, depense_annee=depense)
@@ -394,8 +453,18 @@ def main():
     universe, gp_thr, n_total = q.impopular_universe()
     star_univ = q.star_universe(12)
     ventes = ventes_estimees(prizes[max(prizes)]) if prizes else None
+    # v4.1 : les grilles déjà inscrites au registre pour ce tirage sont FIGÉES. Un re-run (jackpot
+    # officiel, créneau de rattrapage) recalcule leurs indicateurs mais ne les retire jamais, même
+    # si la table de popularité a bougé entre-temps ; il ne tire que les grilles supplémentaires.
+    figees = sorted((r for r in rows if r["draw_date"] == draw_iso), key=lambda r: int(r["grid"]))
+    paires = [(tuple(int(x) for x in r["nums"].split("-")), tuple(int(x) for x in r["stars"].split("-"))) for r in figees]
+    if len(paires) < n:
+        for g, stars in q.draw_grids(seed, n + len(paires) + 5, universe=universe, star_univ=star_univ):
+            if len(paires) >= n: break
+            if any(q.overlap(g, h) > 2 or stars == st for h, st in paires): continue
+            paires.append((g, stars))
     grids = []
-    for i, (g, stars) in enumerate(q.draw_grids(seed, n, universe=universe, star_univ=star_univ)):
+    for i, (g, stars) in enumerate(paires):
         rp = q.relative_popularity(g, stars)
         grids.append({"id": i+1, "nums": list(g), "stars": list(stars),
                       "sum": sum(g), "even": sum(1 for x in g if x % 2 == 0), "low": sum(1 for x in g if x <= 25),
@@ -423,7 +492,7 @@ def main():
 
     slim = lambda d: {k: {kk: vv for kk, vv in v.items() if kk != "points"} for k, v in d.items()}
     R = {"version": q.VERSION, "run_date": today.isoformat(), "draw_date": draw_iso, "draw_date_fr": draw_fr, "seed": seed,
-         "dataset": fp, "jackpot": jp, "n_grilles": n,
+         "dataset": fp, "jackpot": jp, "n_grilles": len(grids), "grilles_figees": len(figees),
          "n_grilles_regle_jackpot": q.n_grids_regle(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
          "mise": {"regle": regle_txt, "budget_eur": q.BUDGET_EUR, "prix_grille": q.PRIX_GRILLE, "depense_annee_avant_run": round(depense, 2),
                   "dont_autres_jeux": round(autre_depense, 2)},

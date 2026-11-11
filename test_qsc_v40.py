@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests unitaires QSC v4.0 — invariants v3.9 conservés + tirage uniforme dans l'univers (A1),
+"""Tests unitaires QSC v4.0/v4.1 — invariants v3.9 conservés + tirage uniforme dans l'univers (A1),
 règle de mise 1/2/3/4 sous budget (A2)."""
 import math, random, itertools
 from datetime import date
@@ -211,6 +211,41 @@ def run():
     t("budget commun : cumul sans autre jeu inchangé", RQ.cumul(rows_b, 2026)["depense_annee_eur"] == 2.5)
     t("budget commun : le Loto réduit les grilles restantes", q.n_grids(150, depense_annee=517.5 + 0.0) == 1
       and q.n_grids(150, depense_annee=RQ.cumul(rows_b, 2026, autre_depense=517.5)["depense_annee_eur"]) == 0)
+
+
+    # ---- v4.1 : fiabilité du run (revue du 11/11/2026)
+    bloc = lambda montant, d, cle: ('{\\"gameExternalId\\":\\"x\\",\\"formattedDate\\":\\"Vendredi\\",\\"amount\\":\\"%s millions €\\",'
+                                    '\\"type\\":\\"1\\",\\"%s\\":false,\\"prefix\\":\\"Minimum\\",\\"date\\":\\"%sT21:45:00.000+01:00\\"}' % (montant, cle, d))
+    page = "<html>13 Millions d'Euros à gagner " + bloc(13, "2026-11-13", "lotoType") + bloc(17, "2026-11-13", "megaJackpot") + "</html>"
+    t("fdj : lit le bloc EuroMillions, pas la bannière d'un autre jeu", RQ.parse_jackpot_fdj(page, "2026-11-13") == (17.0, "ok"))
+    v, why = RQ.parse_jackpot_fdj(page, "2026-11-17")
+    t("fdj : annonce d'un autre tirage refusée, avec la raison", v is None and "2026-11-13" in why)
+    v, why = RQ.parse_jackpot_fdj("<html>rien</html>", "2026-11-13")
+    t("fdj : page lue mais illisible ≠ page inaccessible", v is None and "introuvable" in why)
+    t("fdj : ancien motif encore accepté en secours", RQ.parse_jackpot_fdj("130 Millions d'euros à gagner", "2026-11-06")[0] == 130.0)
+    t("fraîcheur : dataset à jour = 0 tirage de retard", RQ.retard_dataset("2026-11-10", date(2026, 11, 13)) == 0)
+    t("fraîcheur : cas du 10/11/2026 (dernier connu 03/11) = 1 tirage de retard", RQ.retard_dataset("2026-11-03", date(2026, 11, 10)) == 1)
+    t("fraîcheur : deux tirages de retard", RQ.retard_dataset("2026-11-03", date(2026, 11, 13)) == 2)
+    meta = {"last_draw": {"date": "2026-11-03", "has_winner": False, "jackpot_eur": 98790357}}
+    jp1 = RQ.estimate_jackpot(meta, None, use_fdj=False, draw_iso="2026-11-10", retard=1)
+    t("jackpot : estimation sur dataset en retard marquée périmée", jp1["source"] == "estimation périmée" and jp1["fiable"] is False)
+    t("jackpot : estimation sur dataset à jour inchangée", RQ.estimate_jackpot(meta, None, use_fdj=False, draw_iso="2026-11-06", retard=0)["source"] == "estimation")
+    t("jackpot : montant fourni prioritaire", RQ.estimate_jackpot(meta, 141, use_fdj=False, retard=1)["meur"] == 141.0)
+    base = {"run_date": "2026-11-10", "draw_date": "2026-11-10", "grid": 1, "nums": "8-31-37-41-48", "stars": "6-12",
+            "real_nums": "", "real_stars": "", "match_nums": "", "match_stars": "", "rang": "", "gain_eur": "",
+            "gagnants_rang": "", "gagnants_attendus_rang": ""}
+    tirage = [("2026-11-10", (15, 18, 31, 37, 41), (1, 5))]
+    W = {(2, 0): 900000, (2, 1): 400000, (1, 2): 140000, (3, 0): 72258}
+    r1 = [dict(base)]
+    d1 = RQ.reconcile(r1, tirage, {}, {})
+    t("rapprochement : numéros connus, rapports pas encore → rang en attente", r1[0]["match_nums"] == "3" and r1[0]["rang"] == "" and len(d1) == 1)
+    d2 = RQ.reconcile(r1, tirage, {"2026-11-10": W}, {})
+    t("rapprochement : rang atteint sans montant → pas soldé à 0 €", r1[0]["rang"] == "" and d2 == [])
+    d3 = RQ.reconcile(r1, tirage, {"2026-11-10": W}, {"2026-11-10": {(3, 0): 10.5}})
+    t("rapprochement : gain arrivé après coup annoncé au run suivant", len(d3) == 1 and d3[0]["rang"] == 10 and d3[0]["gain_eur"] == 10.5)
+    r2 = [dict(base)]
+    d4 = RQ.reconcile(r2, tirage, {"2026-11-10": W}, {"2026-11-10": {(3, 0): 10.5}})
+    t("rapprochement : tout connu d'un coup → une seule ligne annoncée", len(d4) == 1 and r2[0]["gain_eur"] == 10.5)
 
     passed = sum(1 for _, ok in T if ok)
     for name, ok in T:

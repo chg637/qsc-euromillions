@@ -33,7 +33,7 @@ import csv, math, random, itertools, bisect, hashlib
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
-VERSION = "4.0"
+VERSION = "4.1"   # 11/11/2026 : fiabilité du run (fraîcheur, jackpot, grilles figées) ; méthode inchangée
 PRIX_GRILLE = 2.50
 BUDGET_EUR = 520.0            # plafond annuel de mise, décision du 05/11/2026
 PALIERS_MEUR = (100, 150, 200)   # 1 grille, +1 à chaque palier franchi
