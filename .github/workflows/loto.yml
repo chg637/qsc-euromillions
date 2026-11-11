@@ -52,12 +52,21 @@ jobs:
           import qsc_loto as q
           want = q.next_draw_date(datetime.date.today()).isoformat()
           try:
-              have = json.load(open("output/latest.json", encoding="utf-8"))["draw_date"]
+              L = json.load(open("output/latest.json", encoding="utf-8"))
+              have = L["draw_date"]
           except Exception:
-              have = None
+              L, have = {}, None
+          # v2.1 : un run publié en mode dégradé (jackpot estimé ou dataset en retard) n'est pas
+          # définitif. Les créneaux suivants le rejouent jusqu'à 10:00 UTC, soit avant la lecture
+          # de 11:49 Paris ; les grilles déjà inscrites au registre sont figées.
+          propre = (L.get("jackpot", {}).get("source") in ("fdj.fr", "fourni")
+                    and not L.get("dataset", {}).get("retard_tirages", 0))
+          tard = datetime.datetime.utcnow().hour >= 10
+          done = have == want and (propre or tard)
           print(f"want={want}")
           print(f"have={have}")
-          print("done=" + ("true" if have == want else "false"))
+          print(f"propre={str(propre).lower()}")
+          print("done=" + ("true" if done else "false"))
           PY
 
       - name: Rien à faire
@@ -68,8 +77,12 @@ jobs:
         if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
         run: python3 test_loto.py
 
+      # v2.1 : non bloquant. FDJ injoignable (code 2) ou tirage manquant (code 3) : le pipeline
+      # tourne quand même sur le CSV existant et l'écrit en alerte dans le livrable.
       - name: Refresh CSV depuis la FDJ
+        id: refresh
         if: github.event_name != 'schedule' || steps.guard.outputs.done != 'true'
+        continue-on-error: true
         run: python3 update_loto.py
 
       - name: Pipeline QSC Loto
@@ -77,6 +90,7 @@ jobs:
         env:
           JACKPOT_MEUR: ${{ github.event.inputs.jackpot_meur }}
           N_GRILLES: ${{ github.event.inputs.n_grilles }}
+          UPDATE_STATUS: ${{ steps.refresh.outcome }}
         run: python3 run_loto.py
 
       - name: Commit des résultats
