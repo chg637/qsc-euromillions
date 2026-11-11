@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-run_loto.py — Pipeline QSC Loto v2.0, exécuté par GitHub Actions les jours de tirage (lun/mer/sam).
+run_loto.py — Pipeline QSC Loto v2.1, exécuté par GitHub Actions les jours de tirage (lun/mer/sam).
 
 Étapes : chargement + intégrité → rapprochement du run précédent (registre append-only, en euros)
 → popularité estimée sur les gagnants par rang FDJ → backtest numéros / Chance (DIAGNOSTIC : step 1,
@@ -13,7 +13,7 @@ Usage : python3 run_loto.py [--jackpot 8] [--today 2026-10-14] [--n-grilles 1] [
 Sortie : 0 si checklist verte, 4 sinon (le livrable est quand même écrit, marqué KO).
 """
 import argparse, csv, json, math, os, re, statistics, sys, urllib.request, html as H
-from datetime import date
+from datetime import date, timedelta
 import qsc_loto as q
 import popularite_loto as P
 
@@ -70,6 +70,8 @@ def reconcile(rows, draws, prizes, amounts):
             if pz["era"] != 9: continue          # règle 2008-2017 : rangs différents, hors périmètre du registre
             rg = q.rang_of(int(r["match_nums"]), int(r["match_chance"]))
             r["rang"] = str(rg)
+            if not any(r is d for d in done):   # v2.1 : rang soldé à un run ultérieur → annoncé quand même
+                done.append(r)
             r["gain_eur"] = amounts[r["draw_date"]].get(rg, 0.0) if rg else 0.0
             if rg:
                 N = q.ventes_estimees(pz["w"])
@@ -142,20 +144,40 @@ def parse_jackpot_page(page, draw_date):
     v = float(m.group(1).replace(",", "."))
     return v if 2 <= v <= 200 else None
 
-def estimate_jackpot(meta, override, draw_date, use_fdj=True):
+def previous_draw_date(draw_date):
+    """Tirage précédant draw_date (lundi, mercredi, samedi)."""
+    d = draw_date - timedelta(days=1)
+    while d.weekday() not in q.DRAW_WEEKDAYS:
+        d -= timedelta(days=1)
+    return d
+
+def retard_dataset(dernier_iso, draw_date):
+    """Nombre de tirages déjà joués qui manquent au dataset (0 = à jour)."""
+    n, d = 0, previous_draw_date(draw_date)
+    while d.isoformat() > dernier_iso:
+        n += 1; d = previous_draw_date(d)
+    return n
+
+def estimate_jackpot(meta, override, draw_date, use_fdj=True, retard=0):
+    """v2.1 : une estimation calculée sur un dataset en retard est marquée « estimation périmée »."""
     if override is not None:
-        return {"meur": float(override), "source": "fourni", "note": "montant officiel fourni au run"}
+        return {"meur": float(override), "source": "fourni", "note": "montant officiel fourni au run", "fiable": True}
     last = (meta or {}).get("last_draw") or {}
     jp = last.get("jackpot_eur")
     est = round(jp / 1e6 + 1, 0) if (jp and not last.get("has_winner")) else 2.0
     if use_fdj:
         off = jackpot_fdj(draw_date)
         if off is not None:
-            return {"meur": off, "source": "fdj.fr", "note": f"montant officiel lu sur fdj.fr (estimation : {est:.0f} M€)"}
+            return {"meur": off, "source": "fdj.fr", "fiable": True, "note": f"montant officiel lu sur fdj.fr (estimation : {est:.0f} M€)"}
+    if retard > 0:
+        return {"meur": est, "source": "estimation périmée", "fiable": False,
+                "note": f"fdj.fr illisible ou pas encore sur ce tirage, et le dataset a {retard} tirage(s) de retard "
+                        f"(dernier connu : {last.get('date', '?')}) : ce montant n'est PAS celui du prochain tirage"}
     if jp and not last.get("has_winner"):
-        return {"meur": est, "source": "estimation",
-                "note": f"fdj.fr indisponible — jackpot du {last['date']} ({jp/1e6:.0f} M€) non gagné : +1 M€ au tirage suivant"}
-    return {"meur": 2.0, "source": "estimation", "note": "fdj.fr indisponible — jackpot remis à 2 M€ après un gagnant (ou source muette)"}
+        return {"meur": est, "source": "estimation", "fiable": False,
+                "note": f"fdj.fr illisible ou pas encore sur ce tirage — jackpot du {last['date']} ({jp/1e6:.0f} M€) non gagné : +1 M€ au tirage suivant"}
+    return {"meur": 2.0, "source": "estimation", "fiable": False,
+            "note": "fdj.fr illisible ou pas encore sur ce tirage — jackpot remis à 2 M€ après un gagnant (ou source muette)"}
 
 def ev_bas_recent(amounts, n=20):
     """EV des rangs 2 à 9 d'après les montants médians des n derniers tirages connus ; défaut si cache vide."""
@@ -333,6 +355,16 @@ def main():
     fp = q.dataset_fingerprint(draws, "csv"); fp["integrite"] = ok; fp["alertes"] = alerts
     if draws[-1][0] >= draw_iso:
         print(f"Le tirage {draw_iso} est déjà dans le dataset : rien à générer.", file=sys.stderr); sys.exit(0)
+    # v2.1 : fraîcheur. L'intégrité ne voit que les trous à l'intérieur du dataset ; ici on compare
+    # le dernier tirage connu au tirage précédant celui du run.
+    retard = retard_dataset(draws[-1][0], draw_date)
+    fp["retard_tirages"] = retard
+    if retard:
+        fp["alertes"].append(f"dataset en retard de {retard} tirage(s) : dernier connu {draws[-1][0]}, "
+                             f"attendu {previous_draw_date(draw_date).isoformat()} (rapprochement et jackpot estimé incomplets)")
+    maj = os.environ.get("UPDATE_STATUS", "")
+    if maj and maj != "success":
+        fp["alertes"].append("mise à jour du CSV en échec ce run (FDJ injoignable ou tirage manquant) : calcul sur le CSV existant")
     meta_p = os.path.join(a.out, "fdj_meta.json")
     fdj_meta = json.load(open(meta_p, encoding="utf-8")) if os.path.exists(meta_p) else None
 
@@ -356,7 +388,7 @@ def main():
     chi2, pchi = q.chi2_uniformity(draws)
 
     # jackpot officiel / nombre de grilles sous budget commun
-    jp = estimate_jackpot(fdj_meta, a.jackpot, draw_date, use_fdj=not a.no_fdj)
+    jp = estimate_jackpot(fdj_meta, a.jackpot, draw_date, use_fdj=not a.no_fdj, retard=retard)
     n = q.n_grids(jp["meur"], plancher=a.n_grilles, depense_annee=depense)
     regle_txt = f"1 grille, +1 à 100, 150 et 200 M€ ({q.n_grids_regle(jp['meur'])} pour {jp['meur']:.0f} M€)"
 
@@ -365,8 +397,18 @@ def main():
     last_era9 = next((prizes[d] for d in sorted(prizes, reverse=True) if prizes[d]["era"] == 9), None)
     ventes = (q.ventes_estimees(last_era9["w"]) if last_era9 else None) or q.VENTES_DEFAUT
     ev_bas, ev_bas_mesure = ev_bas_recent(amounts)
+    # v2.1 : les grilles déjà inscrites au registre pour ce tirage sont FIGÉES. Un re-run recalcule
+    # leurs indicateurs mais ne les retire jamais, même si la table de popularité a bougé entre-temps ;
+    # il ne tire que les grilles supplémentaires.
+    figees = sorted((r for r in rows if r["draw_date"] == draw_iso), key=lambda r: int(r["grid"]))
+    paires = [(tuple(int(x) for x in r["nums"].split("-")), int(r["chance"])) for r in figees]
+    if len(paires) < n:
+        for g, ch in q.draw_grids(seed, n + len(paires) + 5, universe=universe, chance_univ=ch_univ):
+            if len(paires) >= n: break
+            if any(q.overlap(g, h) > 2 for h, _ in paires): continue
+            paires.append((g, ch))
     grids = []
-    for i, (g, ch) in enumerate(q.draw_grids(seed, n, universe=universe, chance_univ=ch_univ)):
+    for i, (g, ch) in enumerate(paires):
         rp = q.relative_popularity(g, ch)
         grids.append({"id": i+1, "nums": list(g), "chance": ch,
                       "sum": sum(g), "even": sum(1 for x in g if x % 2 == 0), "low": sum(1 for x in g if x <= 24),
@@ -392,7 +434,7 @@ def main():
 
     slim = lambda d: {k: {kk: vv for kk, vv in v.items() if kk != "points"} for k, v in d.items()}
     R = {"version": q.VERSION, "jeu": q.GAME, "run_date": today.isoformat(), "draw_date": draw_iso, "draw_date_fr": draw_fr, "seed": seed,
-         "dataset": fp, "jackpot": jp, "n_grilles": n, "n_grilles_regle_jackpot": q.n_grids_regle(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
+         "dataset": fp, "jackpot": jp, "n_grilles": len(grids), "grilles_figees": len(figees), "n_grilles_regle_jackpot": q.n_grids_regle(jp["meur"]), "n_grilles_plancher": a.n_grilles or None,
          "mise": {"regle": regle_txt, "budget_eur": q.BUDGET_EUR, "prix_grille": q.PRIX_GRILLE, "depense_annee_avant_run": round(depense, 2),
                   "dont_autres_jeux": round(autre_depense, 2)},
          "selection": selection, "popularite": pop_info, "grilles": grids,
