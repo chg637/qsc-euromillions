@@ -17,17 +17,17 @@
   "retard_tirages": 0
  },
  "jackpot": {
-  "meur": 98.8,
-  "source": "estimation",
-  "fiable": false,
-  "note": "fdj.fr : fdj.fr donne 17 M€, sous l'estimation API (99 M€) : écarté. Report du jackpot du 2026-11-03 sans gagnant : le montant réel du prochain tirage est ≥ à cette valeur"
+  "meur": 17.0,
+  "source": "fourni",
+  "note": "montant officiel fourni au run",
+  "fiable": true
  },
  "n_grilles": 1,
  "grilles_figees": 1,
  "n_grilles_regle_jackpot": 1,
  "n_grilles_plancher": null,
  "mise": {
-  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 99 M€)",
+  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 17 M€)",
   "budget_eur": 520.0,
   "prix_grille": 2.5,
   "depense_annee_avant_run": 171.0,
@@ -237,7 +237,7 @@
    "anti_share": 97.4,
    "rel_popularity": 0.394,
    "cowinners": 0.059,
-   "ev_nette": -1.344
+   "ev_nette": -1.912
   }
  ],
  "backtest": {
@@ -377,62 +377,7 @@
   "p": 0.292
  },
  "registre": {
-  "rapproche": [
-   {
-    "run_date": "2026-11-06",
-    "draw_date": "2026-11-06",
-    "grid": "1",
-    "model": "uniforme-univers-R7",
-    "nums": "8-29-35-36-45",
-    "stars": "11-12",
-    "seed": "20261106",
-    "jackpot_meur": "130.0",
-    "real_nums": "7-13-37-47-49",
-    "real_stars": "7-11",
-    "match_nums": "0",
-    "match_stars": "1",
-    "rang": "",
-    "gain_eur": "",
-    "gagnants_rang": "",
-    "gagnants_attendus_rang": ""
-   },
-   {
-    "run_date": "2026-11-06",
-    "draw_date": "2026-11-06",
-    "grid": "2",
-    "model": "uniforme-univers-R7",
-    "nums": "30-34-37-45-47",
-    "stars": "6-12",
-    "seed": "20261106",
-    "jackpot_meur": "130.0",
-    "real_nums": "7-13-37-47-49",
-    "real_stars": "7-11",
-    "match_nums": "2",
-    "match_stars": "0",
-    "rang": "",
-    "gain_eur": "",
-    "gagnants_rang": "",
-    "gagnants_attendus_rang": ""
-   },
-   {
-    "run_date": "2026-11-10",
-    "draw_date": "2026-11-10",
-    "grid": "1",
-    "model": "uniforme-univers-R7",
-    "nums": "8-31-37-41-48",
-    "stars": "6-12",
-    "seed": "20261110",
-    "jackpot_meur": "98.8",
-    "real_nums": "15-18-31-37-41",
-    "real_stars": "1-5",
-    "match_nums": "3",
-    "match_stars": "0",
-    "rang": "",
-    "gain_eur": "",
-    "gagnants_rang": "",
-    "gagnants_attendus_rang": ""
-   }
-  ],
+  "rapproche": [],
   "cumul": {
    "grilles": 64,
    "match_nums": 33,
@@ -465,5 +410,5 @@
   "ok": true,
   "fails": []
  },
- "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v4.1 — tirage du vendredi 13/11/2026 · 1997 tirages · seed 20261113\nJackpot 99 M€ (estimation) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 99 M€))\n\nG1 : 02 30 40 41 43 ★ 10 12  (joueurs attendus ×0.39, EV nette -1.34 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer (parmi les grilles les moins jouées), jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard (Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.68) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.)\nPopularité : R7 — gagnants par rang (pool européen) — 1616 tirages ; étoiles les moins jouées : 12, 10, 11, 1.\nBudget : 173.50 € dépensés en 2026 sur 520 € (dont 11.00 € au Loto).\nCumul : 33 numéros trouvés sur 64 grilles (attendu 32.0, écart +1.0 ± 10.08) · mise 160.00 €, gains 20.89 € · partage observé ×1.08 sur 4 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v4.1 — tirage du vendredi 13/11/2026 · 1997 tirages · seed 20261113\nJackpot 17 M€ (fourni) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 17 M€))\n\nG1 : 02 30 40 41 43 ★ 10 12  (joueurs attendus ×0.39, EV nette -1.91 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer (parmi les grilles les moins jouées), jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard (Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.68) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.)\nPopularité : R7 — gagnants par rang (pool européen) — 1616 tirages ; étoiles les moins jouées : 12, 10, 11, 1.\nBudget : 173.50 € dépensés en 2026 sur 520 € (dont 11.00 € au Loto).\nCumul : 33 numéros trouvés sur 64 grilles (attendu 32.0, écart +1.0 ± 10.08) · mise 160.00 €, gains 20.89 € · partage observé ×1.08 sur 4 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
 }
