@@ -7,14 +7,21 @@ et écrit output/api_meta.json (dernier tirage, jackpot du dernier tirage, gagna
 pour l'estimation du prochain jackpot par run_qsc.py.
 
 Usage : python3 update_master.py [--csv euromillions_MASTER.csv] [--dry-run]
-Sortie : code 0 si OK (même sans nouveauté), 2 si l'API est injoignable, 3 si intégrité KO.
+Sortie : code 0 si OK (même sans nouveauté), 2 si l'API ET le repli FDJ sont injoignables, 3 si intégrité KO.
 """
-import argparse, json, os, sys, time, urllib.request, urllib.error
-from datetime import date
+import argparse, csv, io, json, os, sys, time, urllib.request, urllib.error, zipfile
+from datetime import date, datetime
 import qsc_v40 as q
 import popularite as P
 
 API = "https://euromillions.api.pedromealha.dev/v1/draws?year={year}"
+
+# v4.2 : repli sur l'historique officiel FDJ (zip CSV « euromillions_202002 », règle en vigueur depuis
+# 02/2020) quand l'API pedromealha est injoignable (timeout, 429). Même source que le Loto.
+FDJ_ZIP = "https://www.sto.api.fdj.fr/anonymous/service-draw-info/v3/documentations/1a2b3c4d-9876-4562-b3fc-2c963f66afe6"
+# Rang FDJ → (numéros, étoiles) : 1=5+2, 2=5+1, 3=5+0, 4=4+2, 5=4+1, 6=3+2, 7=4+0, 8=2+2, 9=3+1, 10=3+0, 11=1+2, 12=2+1, 13=2+0
+FDJ_RANKS = {1: (5, 2), 2: (5, 1), 3: (5, 0), 4: (4, 2), 5: (4, 1), 6: (3, 2), 7: (4, 0),
+             8: (2, 2), 9: (3, 1), 10: (3, 0), 11: (1, 2), 12: (2, 1), 13: (2, 0)}
 
 def fetch_year(year, retries=4):
     req = urllib.request.Request(API.format(year=year), headers={"User-Agent": "qsc-euromillions/4.0"})
@@ -27,6 +34,48 @@ def fetch_year(year, retries=4):
                 time.sleep(5 * (i + 1)); continue
             raise
         except (urllib.error.URLError, TimeoutError):
+            if i < retries - 1:
+                time.sleep(5 * (i + 1)); continue
+            raise
+
+def _fr_num(x):
+    x = (x or "").replace(",", ".").replace(" ", "").replace("\u202f", "").replace("\xa0", "")
+    return float(x) if x else 0.0
+
+def fdj_rows_to_items(rows):
+    """Lignes du CSV FDJ → {année: [items au format de l'API]} (date, numbers, stars, has_winner,
+    prizes[matched_numbers, matched_stars, prize (€), winners (Europe)]). Les gagnants par rang sont
+    ceux du pool européen, comme l'API. Les lignes illisibles sont ignorées."""
+    out = {}
+    for r in rows:
+        try:
+            d = datetime.strptime(r["date_de_tirage"].strip(), "%d/%m/%Y").date().isoformat()
+            nums = sorted(int(r[f"boule_{i}"]) for i in range(1, 6))
+            stars = sorted(int(r[f"etoile_{i}"]) for i in (1, 2))
+            prizes = []
+            for k, (mn, ms) in FDJ_RANKS.items():
+                prizes.append({"matched_numbers": mn, "matched_stars": ms,
+                               "prize": _fr_num(r.get(f"rapport_du_rang{k}_Euro_Millions")),
+                               "winners": int(_fr_num(r.get(f"nombre_de_gagnant_au_rang{k}_Euro_Millions_en_europe")))})
+        except Exception as e:
+            print(f"ligne FDJ illisible ignorée : {e}", file=sys.stderr); continue
+        winners1 = next(p["winners"] for p in prizes if (p["matched_numbers"], p["matched_stars"]) == (5, 2))
+        out.setdefault(int(d[:4]), []).append({"date": d, "numbers": [str(n) for n in nums],
+                                               "stars": [str(s) for s in stars],
+                                               "has_winner": winners1 > 0, "prizes": prizes})
+    return out
+
+def fetch_fdj(retries=3):
+    req = urllib.request.Request(FDJ_ZIP, headers={"User-Agent": "qsc-euromillions/4.2"})
+    for i in range(retries):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = r.read()
+            z = zipfile.ZipFile(io.BytesIO(data))
+            name = next(n for n in z.namelist() if n.endswith(".csv"))
+            rows = list(csv.DictReader(io.StringIO(z.read(name).decode("latin-1")), delimiter=";"))
+            return fdj_rows_to_items(rows)
+        except Exception:
             if i < retries - 1:
                 time.sleep(5 * (i + 1)); continue
             raise
@@ -46,14 +95,25 @@ def main():
     this_year = date.today().year
 
     added, api_last = [], None
+    fdj, used_fdj = None, False
     for year in range(last_year, this_year + 1):
         try:
             items = fetch_year(year)
         except Exception as e:
             print(f"API injoignable ({year}) : {e}", file=sys.stderr)
-            if not added and year == last_year:
-                sys.exit(2)
-            break
+            try:   # v4.2 : repli sur l'historique officiel FDJ
+                if fdj is None:
+                    fdj = fetch_fdj()
+                items = fdj.get(year) or []
+                if not items:
+                    raise ValueError(f"aucun tirage {year} dans l'historique FDJ")
+                used_fdj = True
+                print(f"repli FDJ officiel ({year}) : {len(items)} tirages lus", file=sys.stderr)
+            except Exception as e2:
+                print(f"FDJ injoignable aussi ({year}) : {e2}", file=sys.stderr)
+                if not added and year == last_year:
+                    sys.exit(2)
+                break
         os.makedirs(os.path.join(a.out, "api_cache"), exist_ok=True)   # montants par rang pour le registre en euros
         with open(os.path.join(a.out, "api_cache", f"{year}.json"), "w", encoding="utf-8") as f:
             json.dump(items, f, ensure_ascii=False)
@@ -94,7 +154,7 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, "api_meta.json"), "w", encoding="utf-8") as f:
         json.dump({"fetched_at": date.today().isoformat(), "added": added, "last_draw": api_last,
-                   "fingerprint": q.dataset_fingerprint(new_draws, "csv+api")}, f, ensure_ascii=False, indent=1)
+                   "fingerprint": q.dataset_fingerprint(new_draws, "csv+fdj" if used_fdj else "csv+api")}, f, ensure_ascii=False, indent=1)
 
 if __name__ == "__main__":
     main()
