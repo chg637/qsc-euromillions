@@ -247,6 +247,25 @@ def run():
     d4 = RQ.reconcile(r2, tirage, {"2026-11-10": W}, {"2026-11-10": {(3, 0): 10.5}})
     t("rapprochement : tout connu d'un coup → une seule ligne annoncée", len(d4) == 1 and r2[0]["gain_eur"] == 10.5)
 
+    # --- v4.2 : repli FDJ de update_master (rangs, gagnants Europe, montants, format API)
+    import update_master as UM
+    row = {"date_de_tirage": "10/11/2026", "boule_1": "15", "boule_2": "18", "boule_3": "37", "boule_4": "41",
+           "boule_5": "31", "etoile_1": "1", "etoile_2": "5"}
+    for k, (w, r) in {1: (1, "141899445,00"), 2: (2, "369732,70"), 3: (3, "57608,40"), 4: (32, "1682,20"),
+                      5: (733, "135,20"), 6: (1479, "70,80"), 7: (1541, "47,80"), 8: (23501, "15,60"),
+                      9: (32343, "12,70"), 10: (72258, "10,50"), 11: (130007, "7,10"),
+                      12: (488308, "5,90"), 13: (1091588, "4,30")}.items():
+        row[f"nombre_de_gagnant_au_rang{k}_Euro_Millions_en_europe"] = str(w)
+        row[f"rapport_du_rang{k}_Euro_Millions"] = r
+    it = UM.fdj_rows_to_items([row, {"date_de_tirage": "illisible"}])[2026][0]
+    pz = {(p["matched_numbers"], p["matched_stars"]): p for p in it["prizes"]}
+    t("FDJ : tirage converti au format API (numéros triés, étoiles)", it["date"] == "2026-11-10" and it["numbers"] == ["15", "18", "31", "37", "41"] and it["stars"] == ["1", "5"])
+    t("FDJ : jackpot 5+2 gagné, montant en euros", it["has_winner"] and pz[(5, 2)]["winners"] == 1 and pz[(5, 2)]["prize"] == 141899445.0)
+    t("FDJ : rang 7 = 4 numéros sans étoile (Europe)", pz[(4, 0)]["winners"] == 1541 and pz[(4, 0)]["prize"] == 47.8)
+    t("FDJ : rang 13 = 2 numéros sans étoile", pz[(2, 0)]["winners"] == 1091588)
+    t("FDJ : les 13 rangs sont couverts", len(pz) == 13)
+    t("FDJ : gagnants au format attendu par popularité", len(P.prizes_from_api_item(it)) == 13)
+
     passed = sum(1 for _, ok in T if ok)
     for name, ok in T:
         print(("PASS" if ok else "FAIL"), name)
