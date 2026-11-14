@@ -1,0 +1,358 @@
+{
+ "version": "2.1",
+ "jeu": "Loto",
+ "run_date": "2026-11-14",
+ "draw_date": "2026-11-14",
+ "draw_date_fr": "samedi 14/11/2026",
+ "seed": 20261114,
+ "dataset": {
+  "n": 2833,
+  "premier": "2008-10-06",
+  "dernier": "2026-11-11",
+  "source": "csv",
+  "hash": "3618ad8b158f",
+  "integrite": true,
+  "alertes": [],
+  "retard_tirages": 0
+ },
+ "jackpot": {
+  "meur": 22.0,
+  "source": "fdj.fr",
+  "fiable": true,
+  "note": "montant officiel lu sur fdj.fr (estimation : 16 M€)"
+ },
+ "n_grilles": 1,
+ "grilles_figees": 0,
+ "n_grilles_regle_jackpot": 1,
+ "n_grilles_plancher": null,
+ "mise": {
+  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 22 M€)",
+  "budget_eur": 520.0,
+  "prix_grille": 2.2,
+  "depense_annee_avant_run": 173.5,
+  "dont_autres_jeux": 162.5
+ },
+ "selection": {
+  "regle": "univers = décile le moins joué des C(49,5) hors motifs pénalisés ; tirage uniforme par seed à l'intérieur, recouvrement ≤ 2 numéros, numéros Chance distincts tant que possible",
+  "quantile": 0.1,
+  "univers_grilles": 172077,
+  "total_grilles": 1906884,
+  "seuil_gp": 0.909,
+  "chance_univers": [
+   1,
+   10,
+   2
+  ],
+  "max_recouvrement": 2,
+  "popularite_source": "gagnants par rang FDJ (loto_PRIZES.csv)",
+  "ventes_estimees": 4999554,
+  "ev_rangs_bas": 0.828,
+  "ev_rangs_bas_mesure": true
+ },
+ "popularite": {
+  "source": "gagnants par rang FDJ (loto_PRIZES.csv)",
+  "estimee": true,
+  "nums": {
+   "1": 1.0735,
+   "2": 1.0007,
+   "3": 1.0782,
+   "4": 1.0916,
+   "5": 1.1839,
+   "6": 1.1202,
+   "7": 1.2661,
+   "8": 1.1213,
+   "9": 1.1795,
+   "10": 1.2057,
+   "11": 1.2494,
+   "12": 1.236,
+   "13": 1.2438,
+   "14": 1.0757,
+   "15": 1.0636,
+   "16": 1.0313,
+   "17": 1.1059,
+   "18": 1.0514,
+   "19": 1.174,
+   "20": 1.0255,
+   "21": 1.032,
+   "22": 1.095,
+   "23": 1.0758,
+   "24": 1.0906,
+   "25": 1.0314,
+   "26": 1.036,
+   "27": 1.0815,
+   "28": 1.0492,
+   "29": 1.0242,
+   "30": 0.937,
+   "31": 0.9471,
+   "32": 0.7887,
+   "33": 0.9092,
+   "34": 0.7927,
+   "35": 0.7703,
+   "36": 0.7905,
+   "37": 0.8368,
+   "38": 0.8405,
+   "39": 0.7734,
+   "40": 0.7916,
+   "41": 0.811,
+   "42": 0.8869,
+   "43": 0.8691,
+   "44": 0.9132,
+   "45": 0.8578,
+   "46": 0.7454,
+   "47": 0.8191,
+   "48": 0.8553,
+   "49": 0.9716
+  },
+  "chance": {
+   "1": 0.7498,
+   "2": 0.8622,
+   "3": 1.0763,
+   "4": 1.0038,
+   "5": 1.1631,
+   "6": 0.9462,
+   "7": 1.3762,
+   "8": 1.0439,
+   "9": 0.9993,
+   "10": 0.7792
+  },
+  "nums_min": 46,
+  "nums_max": 7,
+  "chance_tries": [
+   1,
+   10,
+   2,
+   6,
+   9,
+   4,
+   8,
+   3,
+   5,
+   7
+  ],
+  "tranches": {
+   "1-12": 1.151,
+   "13-31": 1.062,
+   "32-40": 0.81,
+   "41-49": 0.859
+  },
+  "n_tirages_nums": 2833,
+  "n_tirages_chance": 1516,
+  "periode": [
+   "2008-10-06",
+   "2026-11-11"
+  ],
+  "r2_nums": 0.617,
+  "se_moyen_nums": 0.0146,
+  "se_moyen_chance": 0.0036
+ },
+ "grilles": [
+  {
+   "id": 1,
+   "nums": [
+    17,
+    34,
+    37,
+    46,
+    47
+   ],
+   "chance": 1,
+   "sum": 181,
+   "even": 2,
+   "low": 1,
+   "anti_share": 99.0,
+   "rel_popularity": 0.336,
+   "cowinners": 0.088,
+   "ev_nette": -0.268
+  }
+ ],
+ "backtest": {
+  "role": "diagnostic — ne pilote pas la sélection",
+  "meta": {
+   "burn_in": 150,
+   "step": 1,
+   "n_points": 2683,
+   "n_models": 6,
+   "n_sim": 5000,
+   "best_edge": 0.016817908676702076,
+   "p_global": 0.4377124575084983,
+   "null_max_q95": 0.02949029033902043
+  },
+  "numeros": {
+   "Fréquence globale": {
+    "n": 2683,
+    "avg": 0.5270219903093551,
+    "edge": 0.016817908676702076,
+    "ci": [
+     -0.00778142043250396,
+     0.04178995489362347
+    ],
+    "p_raw": 0.09238152369526095,
+    "p_adj": 0.4377124575084983,
+    "significant": false
+   },
+   "Lag / retard normalisé": {
+    "n": 2683,
+    "avg": 0.5203130823704808,
+    "edge": 0.010109000737827722,
+    "ci": [
+     -0.01449032837137837,
+     0.03508104695474912
+    ],
+    "p_raw": 0.21135772845430914,
+    "p_adj": 0.7630473905218956,
+    "significant": false
+   },
+   "Fenêtres glissantes": {
+    "n": 2683,
+    "avg": 0.5109951546775997,
+    "edge": 0.000791073044946633,
+    "ci": [
+     -0.02380825606425946,
+     0.02539040215415278
+    ],
+    "p_raw": 0.46790641871625677,
+    "p_adj": 0.9786042791441711,
+    "significant": false
+   },
+   "Momentum": {
+    "n": 2683,
+    "avg": 0.5199403652627655,
+    "edge": 0.009736283630112474,
+    "ci": [
+     -0.015235762586808865,
+     0.03433561273931862
+    ],
+    "p_raw": 0.22095580883823235,
+    "p_adj": 0.7776444711057788,
+    "significant": false
+   },
+   "Co-occurrence / graphe": {
+    "n": 2683,
+    "avg": 0.5050316809541558,
+    "edge": -0.005172400678497224,
+    "ci": [
+     -0.029026295572272875,
+     0.019054211322993564
+    ],
+    "p_raw": 0.6516696660667867,
+    "p_adj": 0.9986002799440112,
+    "significant": false
+   },
+   "Chaînes de Markov": {
+    "n": 2683,
+    "avg": 0.5106224375698845,
+    "edge": 0.000418355937231385,
+    "ci": [
+     -0.02380825606425946,
+     0.025017685046437532
+    ],
+    "p_raw": 0.489502099580084,
+    "p_adj": 0.9830033993201359,
+    "significant": false
+   }
+  },
+  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.44) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.",
+  "chance": {
+   "Chance — fréquence": {
+    "n": 2683,
+    "avg": 0.10659709280655982,
+    "edge": 0.006597092806559818,
+    "ci": [
+     -0.004957137532612746,
+     0.01852404025344763
+    ],
+    "p_raw": 0.11777644471105779,
+    "p_adj": 0.3147370525894821,
+    "significant": false
+   },
+   "Chance — lag": {
+    "n": 2683,
+    "avg": 0.09839731643682445,
+    "edge": -0.0016026835631755554,
+    "ci": [
+     -0.012784196794632885,
+     0.009578829668281774
+    ],
+    "p_raw": 0.6212757448510298,
+    "p_adj": 0.9400119976004799,
+    "significant": false
+   },
+   "Chance — fenêtres": {
+    "n": 2683,
+    "avg": 0.1054789414834141,
+    "edge": 0.005478941483414088,
+    "ci": [
+     -0.00607528885575849,
+     0.01703317182258665
+    ],
+    "p_raw": 0.15656868626274745,
+    "p_adj": 0.40851829634073183,
+    "significant": false
+   }
+  },
+  "chance_meta": {
+   "n_points": 2683,
+   "n_models": 3,
+   "best_edge": 0.006597092806559818,
+   "p_global": 0.3147370525894821
+  }
+ },
+ "chi2": {
+  "stat": 36.63,
+  "p": 0.885
+ },
+ "registre": {
+  "rapproche": [
+   {
+    "run_date": "2026-11-11",
+    "draw_date": "2026-11-11",
+    "grid": "1",
+    "model": "uniforme-univers-R7",
+    "nums": "10-30-36-38-39",
+    "chance": "10",
+    "seed": "20261111",
+    "jackpot_meur": "15.0",
+    "real_nums": "4-5-14-17-29",
+    "real_chance": "8",
+    "match_nums": "0",
+    "match_chance": "0",
+    "rang": "0",
+    "gain_eur": 0.0,
+    "gagnants_rang": "",
+    "gagnants_attendus_rang": ""
+   }
+  ],
+  "cumul": {
+   "grilles": 5,
+   "match_nums": 2,
+   "attendu_nums": 2.55,
+   "ecart_nums": -0.55,
+   "ic95_nums": 2.84,
+   "match_chance": 0,
+   "attendu_chance": 0.5,
+   "ecart_chance": -0.5,
+   "ic95_chance": 1.31,
+   "meilleur": 2,
+   "mise_eur": 11.0,
+   "gains_eur": 5.3,
+   "solde_eur": -5.7,
+   "grilles_en_euros": 5,
+   "rangs_atteints": 1,
+   "gagnants_observes": 182334.0,
+   "gagnants_attendus": 197780.9,
+   "taux_partage": 0.922,
+   "depense_loto_annee_eur": 13.2,
+   "depense_autres_jeux_eur": 162.5,
+   "depense_annee_eur": 175.7,
+   "budget_eur": 520.0,
+   "annee": 2026
+  }
+ },
+ "disclaimer": "Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette négative à presque tous les jackpots (environ −1,3 € par grille à 2 M€, −0,7 € à 13 M€), proche de zéro seulement au maximum historique de 30 M€. Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.",
+ "equivalence": "Toutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/19 068 840 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.",
+ "checklist": {
+  "ok": true,
+  "fails": []
+ },
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette négative à presque tous les jackpots (environ −1,3 € par grille à 2 M€, −0,7 € à 13 M€), proche de zéro seulement au maximum historique de 30 M€. Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC Loto v2.1 — tirage du samedi 14/11/2026 · 2833 tirages · seed 20261114\nJackpot 22 M€ (fdj.fr) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 22 M€))\n\nG1 : 17 34 37 46 47 Chance 1  (joueurs attendus ×0.34, EV nette -0.27 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/19 068 840 au rang 1. Le pipeline choisit comment jouer, jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, Chance parmi les moins jouées. Aucun modèle ne choisit les numéros : Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.44) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.\nPopularité : gagnants par rang FDJ (loto_PRIZES.csv) — 2833 tirages, tranche 1-12 ×1.15, 41-49 ×0.86 ; Chance les moins joués : 1, 10, 2.\nBudget : 175.70 € dépensés en 2026 sur 520 € (dont 162.50 € en EuroMillions).\nCumul : 2 numéros trouvés sur 5 grilles (attendu 2.55, écart -0.55 ± 2.84) · mise 11.00 €, gains 5.30 € · partage observé ×0.92 sur 1 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette négative à presque tous les jackpots (environ −1,3 € par grille à 2 M€, −0,7 € à 13 M€), proche de zéro seulement au maximum historique de 30 M€. Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
+}
