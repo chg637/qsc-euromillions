@@ -31,7 +31,7 @@ python3 qsc.py test                       # tests des deux jeux + golden
 | `update_master.py` | Refresh append-only du CSV depuis l'API, refus d'écrire si l'intégrité casse, alimente `euromillions_PRIZES.csv`, conserve les réponses annuelles dans `output/api_cache/` (montants par rang), écrit `output/api_meta.json`. |
 | `run_qsc.py` | Pipeline complet : jackpot officiel lu sur fdj.fr (repli estimation API), registre rapproché en euros, tirage des grilles → `output/latest.json`, `output/latest.html`, `output/registre.csv`, `output/history/<date>.json`. |
 | `.github/workflows/qsc.yml` | Trois crons mar/ven (06:10, 09:10, 12:40 UTC) avec garde d'idempotence + `workflow_dispatch` (inputs `jackpot_meur`, `n_grilles`). |
-| `PROMPT_tache_cloud_v40.md` | Prompt de la tâche Claude cloud (lecteur + fallback). |
+| `PROMPT_tache_cloud_euromillions.md` | Prompt de la tâche Claude cloud (lecteur + fallback). |
 | `RAPPORT_application_v40.md` | Application de l'audit du 04/11/2026 (sélection uniforme, mise sous budget, registre en euros). Les rapports antérieurs (v36 à v39) sont dans `archive/`. |
 
 ## Sorties publiées

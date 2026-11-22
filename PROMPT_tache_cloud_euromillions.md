@@ -32,7 +32,7 @@ Les crons GitHub sont « best effort » : un créneau peut être sauté (02/10/2
 
 ```bash
 cd /tmp && rm -rf qsc && git clone --quiet --depth 50 https://github.com/chg637/qsc-euromillions.git qsc
-cd /tmp/qsc && python3 test_qsc_v40.py && { python3 update_master.py || export UPDATE_STATUS=failure; } ; python3 run_qsc.py
+cd /tmp/qsc && python3 test_euromillions.py && { python3 update_master.py || export UPDATE_STATUS=failure; } ; python3 run_qsc.py
 ```
 
 Le bac à sable de la tâche refuse parfois d'exécuter ces scripts (classifieur « Code from External ») : ne contourne pas le refus. Dis-le en une ligne, indique que le run n'est pas encore parti et demande à Charles de lancer le workflow (Actions → Run workflow, champs vides), puis relis `latest.json` quand il confirme.
@@ -84,6 +84,6 @@ Après la restitution texte, publie **systématiquement** un artefact avec l'out
 - Pas de grille « bonus », « intuition » ou « en plus » : les grilles sont celles du JSON (ou du fallback), ni plus ni moins.
 - Pas de commentaire sur un numéro « chaud », « froid », « en retard » comme s'il avait une valeur prédictive.
 - Pas d'écriture dans le dépôt : ni commit, ni push, ni modification du registre.
-- Si Charles demande un changement de méthode, note-le pour une session locale (`qsc_v40.py` est versionné) — ne l'improvise pas dans la restitution.
+- Si Charles demande un changement de méthode, note-le pour une session locale (`qsc_euromillions.py` est versionné) — ne l'improvise pas dans la restitution.
 
 > ⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.
