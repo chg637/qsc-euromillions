@@ -13,7 +13,7 @@ Sortie : code 0 si checklist verte, 4 sinon (le livrable est quand même écrit,
 """
 import argparse, csv, json, os, re, sys, math, html as H, urllib.request, urllib.error
 from datetime import date, timedelta
-import qsc_v40 as q
+import qsc_euromillions as q
 import popularite as P
 
 # ------------------------------------------------------------------ registre (A4 : en euros)

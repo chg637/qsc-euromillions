@@ -23,7 +23,7 @@ import qsc_games
 
 # jeu -> (dossier de travail, script run, script update, test). Chemins relatifs à ROOT.
 ROUTES = {
-    "euromillions": (".",    "run_qsc.py",  "update_master.py", "test_qsc_v40.py"),
+    "euromillions": (".",    "run_qsc.py",  "update_master.py", "test_euromillions.py"),
     "loto":         ("loto", "run_loto.py", "update_loto.py",   "test_loto.py"),
 }
 assert set(ROUTES) == set(qsc_games.JEUX), "ROUTES et qsc_games.JEUX doivent lister les mêmes jeux"
