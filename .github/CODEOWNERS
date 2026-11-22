@@ -1,0 +1,10 @@
+# Relecture demandée sur les fichiers partagés par les deux jeux.
+# Pour la rendre obligatoire : réglages du dépôt > Branches > règle sur main >
+# « Require review from Code Owners ».
+
+/qsc_core.py   @chg637
+/qsc_games.py  @chg637
+/tests/        @chg637
+
+# Quand Adrien rejoint le dépôt : ajouter son pseudo GitHub à la fin de chaque ligne
+# ci-dessus, par exemple  /qsc_core.py   @chg637 @pseudo-d-adrien
