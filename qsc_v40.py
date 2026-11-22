@@ -35,14 +35,16 @@ from datetime import date, timedelta
 import qsc_core as _core
 from qsc_core import (dataset_fingerprint, overlap, popularity_proxy_uk, _normalize, bootstrap_ci,
                       p_value_from_null, verdict, seed_from_draw_date)
+import qsc_games
+from qsc_games import EUROMILLIONS as _G
 
 VERSION = "4.1"   # 11/11/2026 : fiabilité du run (fraîcheur, jackpot, grilles figées) ; méthode inchangée
-PRIX_GRILLE = 2.50
-BUDGET_EUR = 520.0            # plafond annuel de mise, décision du 05/11/2026
-PALIERS_MEUR = (100, 150, 200)   # 1 grille, +1 à chaque palier franchi
-ALL_NUMS = list(range(1, 51))
-ALL_STARS = list(range(1, 13))
-BASELINE = 5 * 5 / 50            # E[matches numéros] hypergéométrique = 0.5
+PRIX_GRILLE = _G.prix_grille
+BUDGET_EUR = qsc_games.BUDGET_ANNUEL_EUR     # plafond annuel de mise, décision du 05/11/2026
+PALIERS_MEUR = qsc_games.PALIERS_MEUR        # 1 grille, +1 à chaque palier franchi
+ALL_NUMS = list(range(1, _G.n_pool + 1))
+ALL_STARS = list(range(1, _G.bonus_pool + 1))
+BASELINE = _G.k_pick * _G.k_pick / _G.n_pool   # E[matches numéros] hypergéométrique = 0.5
 STAR_BASELINE = 2 * 2 / 12       # E[matches étoiles] = 0.333...
 
 # ---------------------------------------------------------------- DONNEES
@@ -290,8 +292,8 @@ def expected_cowinners(nums, stars=None, n_tickets=25_000_000):
 # L'univers de sélection est le décile le moins populaire des C(50,5) = 2 118 760 grilles,
 # hors motifs pénalisés. Calculé une fois par table de popularité (~1 s), indépendant des tirages.
 
-IMPOP_QUANTILE = 0.10
-STAR_QUANTILE = 0.25        # R8 : quart le moins populaire des paires d'étoiles
+IMPOP_QUANTILE = _G.impop_quantile
+STAR_QUANTILE = _G.bonus_quantile        # R8 : quart le moins populaire des paires d'étoiles
 
 def impopular_universe(quantile=IMPOP_QUANTILE):
     """Retourne (grilles, seuil_gp, n_total). Les grilles sont triées, popularité croissante."""
@@ -497,7 +499,7 @@ def chi2_uniformity(draws):
 def next_draw_date(today):
     """Prochain tirage (mardi=1, vendredi=4), aujourd'hui inclus."""
     d = today
-    while d.weekday() not in (1, 4):
+    while d.weekday() not in _G.draw_weekdays:
         d += timedelta(days=1)
     return d
 
