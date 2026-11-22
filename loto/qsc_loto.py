@@ -46,22 +46,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import qsc_core as _core
 from qsc_core import (dataset_fingerprint, overlap, popularity_proxy_uk, _normalize, bootstrap_ci,
                       p_value_from_null, verdict, seed_from_draw_date)
+import qsc_games
+from qsc_games import LOTO as _G
 
 VERSION = "2.1"   # 11/11/2026 : fiabilité du run, alignée sur EuroMillions v4.1 ; méthode inchangée
-GAME = "Loto"
-N_POOL, K_PICK = 49, 5
+GAME = _G.nom
+N_POOL, K_PICK = _G.n_pool, _G.k_pick
 ALL_NUMS = list(range(1, N_POOL + 1))
-ALL_CHANCE = list(range(1, 11))
+ALL_CHANCE = list(range(1, _G.bonus_pool + 1))
 BASELINE = K_PICK * K_PICK / N_POOL          # E[matches] grille aléatoire = 25/49 ≈ 0,510
-CHANCE_BASELINE = 1 / 10
+CHANCE_BASELINE = 1 / _G.bonus_pool
 N_COMBOS = math.comb(N_POOL, K_PICK)          # 1 906 884
 P_RANG1 = 1 / (N_COMBOS * 10)                 # 1/19 068 840
-PRIX_GRILLE = 2.20
-BUDGET_EUR = 520.0            # plafond annuel de mise, tous jeux confondus (décision du 05/11/2026)
-PALIERS_MEUR = (100, 150, 200)   # 1 grille, +1 à chaque palier franchi (mêmes paliers que l'EuroMillions)
-VENTES_DEFAUT = 3_900_000     # grilles vendues par tirage (médiane 2026 estimée sur les rangs 6 à 9)
-EV_RANGS_BAS_DEFAUT = 0.84    # EV des rangs 2 à 9 par grille (montants du 04/11/2026), si le cache de montants manque
-DRAW_WEEKDAYS = (0, 2, 5)                     # lundi, mercredi, samedi
+PRIX_GRILLE = _G.prix_grille
+BUDGET_EUR = qsc_games.BUDGET_ANNUEL_EUR            # plafond annuel de mise, tous jeux confondus (décision du 05/11/2026)
+PALIERS_MEUR = qsc_games.PALIERS_MEUR   # 1 grille, +1 à chaque palier franchi (mêmes paliers que l'EuroMillions)
+VENTES_DEFAUT = _G.ventes_defaut     # grilles vendues par tirage (médiane 2026 estimée sur les rangs 6 à 9)
+EV_RANGS_BAS_DEFAUT = _G.ev_rangs_bas_defaut    # EV des rangs 2 à 9 par grille (montants du 04/11/2026), si le cache de montants manque
+DRAW_WEEKDAYS = _G.draw_weekdays                     # lundi, mercredi, samedi
 
 # ---------------------------------------------------------------- DONNÉES
 
@@ -225,8 +227,8 @@ def expected_cowinners(nums, chance=None, n_tickets=VENTES_DEFAUT):
     """Co-gagnants attendus au rang 1 si la grille gagne (descriptif ; ~3,9 M de grilles par tirage)."""
     return n_tickets * P_RANG1 * relative_popularity(nums, chance)
 
-IMPOP_QUANTILE = 0.10
-CHANCE_QUANTILE = 0.30        # les 3 numéros Chance les moins joués
+IMPOP_QUANTILE = _G.impop_quantile
+CHANCE_QUANTILE = _G.bonus_quantile        # les 3 numéros Chance les moins joués
 
 def impopular_universe(quantile=IMPOP_QUANTILE):
     if quantile in _UNIVERSE_CACHE: return _UNIVERSE_CACHE[quantile]
