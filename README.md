@@ -4,6 +4,20 @@
 
 Pipeline de sélection de grilles parmi les moins jouées (tirage uniforme dans l'univers impopulaire, diagnostic backtest publié pour mémoire, registre en euros, mise sous budget), exécuté automatiquement par GitHub Actions le matin de chaque tirage (mardi, vendredi — 08:10 Paris). La tâche Claude « QSC EuroMillions v4.0 — Tirage jour (mar/ven) » lit `output/latest.json` et le restitue ; si le run GitHub a été sauté, elle rejoue le pipeline versionné elle-même (sans écrire dans le dépôt).
 
+## Lancer
+
+Un seul point d'entrée pour les deux jeux (EuroMillions et Loto) :
+
+```
+python3 qsc.py jeux                       # jeux connus (fiches dans qsc_games.py)
+python3 qsc.py run euromillions [options] # run du tirage du jour
+python3 qsc.py run loto [options]
+python3 qsc.py update loto [options]      # mise à jour des tirages
+python3 qsc.py test                       # tests des deux jeux + golden
+```
+
+`qsc.py` n'est qu'un aiguilleur : il lance les scripts existants (`run_qsc.py`, `loto/run_loto.py`, `update_*`) dans le même dossier que les workflows et leur transmet les options telles quelles. Les workflows de production n'en dépendent pas encore.
+
 ## Contenu
 
 | Fichier | Rôle |
