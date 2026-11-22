@@ -23,9 +23,9 @@ TODAY = "2026-11-20"
 N_SIM = "300"
 
 GAMES = {
-    "euromillions": dict(script=os.path.join(ROOT, "run_qsc.py"), jackpot="95",
+    "euromillions": dict(jackpot="95",
                          csv="euromillions_MASTER.csv", prizes="euromillions_PRIZES.csv"),
-    "loto": dict(script=os.path.join(ROOT, "loto", "run_loto.py"), jackpot="5",
+    "loto": dict(jackpot="5",
                  csv="loto_MASTER.csv", prizes="loto_PRIZES.csv"),
 }
 COMPARED = ["latest.json", "registre.csv"]
@@ -33,7 +33,8 @@ COMPARED = ["latest.json", "registre.csv"]
 
 def run_game(name, out):
     g = GAMES[name]
-    cmd = [sys.executable, g["script"],
+    # Passe par le point d'entrée unique : prouve qu'il équivaut aux anciens appels directs.
+    cmd = [sys.executable, os.path.join(ROOT, "qsc.py"), "run", name,
            "--csv", os.path.join(DATA, g["csv"]), "--prizes", os.path.join(DATA, g["prizes"]),
            "--out", out, "--today", TODAY, "--jackpot", g["jackpot"],
            "--no-fdj", "--n-sim", N_SIM, "--autre-registre", os.path.join(out, "_aucun.csv")]
