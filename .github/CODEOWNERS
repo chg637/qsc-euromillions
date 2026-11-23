@@ -1,7 +1,6 @@
-# Relecture demandée sur les fichiers partagés par les deux jeux.
-# Pour la rendre obligatoire : réglages du dépôt > Branches > règle sur main >
-# « Require review from Code Owners ».
+# Dépôt de production : propriétaire unique.
+# Le travail à deux (Charles + Adrien) se fait dans le dépôt qsc-labo.
 
-/qsc_core.py   @chg637 @adrienvurp
-/qsc_games.py  @chg637 @adrienvurp
-/tests/        @chg637 @adrienvurp
+/qsc_core.py   @chg637
+/qsc_games.py  @chg637
+/tests/        @chg637
