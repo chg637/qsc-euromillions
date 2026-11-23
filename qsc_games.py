@@ -8,7 +8,7 @@ Deux niveaux :
   - une fiche GameSpec par jeu (taille de la grille, bonus, prix, jours de tirage, quantiles
     de l'univers impopulaire, valeurs par défaut d'EV).
 
-Les modules qsc_v40.py (EuroMillions) et loto/qsc_loto.py lisent leurs constantes ici et gardent
+Les modules qsc_euromillions.py (EuroMillions) et loto/qsc_loto.py lisent leurs constantes ici et gardent
 leurs noms habituels (PRIX_GRILLE, ALL_NUMS, ...), donc le reste du code ne change pas.
 Ajouter un jeu commence par ajouter une fiche ici.
 

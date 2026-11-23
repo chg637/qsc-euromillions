@@ -8,7 +8,7 @@ Le dépôt porte deux jeux (EuroMillions et Loto) sur une même méthode : tirer
 |---|---|---|
 | `qsc_core.py` | Briques communes aux deux jeux (modèles, bootstrap, p-values, règle de mise) | Les deux relecteurs |
 | `qsc_games.py` | Une fiche par jeu, plus budget annuel et paliers communs | Les deux relecteurs |
-| `qsc_v40.py`, `run_qsc.py`, `update_master.py`, `popularite.py` | EuroMillions | Libre, une PR par changement |
+| `qsc_euromillions.py`, `run_qsc.py`, `update_master.py`, `popularite.py` | EuroMillions | Libre, une PR par changement |
 | `loto/` | Loto (`qsc_loto.py`, `run_loto.py`, `update_loto.py`, `popularite_loto.py`) | Libre, une PR par changement |
 | `qsc.py` | Point d'entrée : `python3 qsc.py run\|update\|test <jeu>` | Libre |
 | `tests/` | Test golden et ses données figées | Les deux relecteurs |

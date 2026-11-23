@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: EuroMillions
-        run: python3 test_qsc_v40.py
+        run: python3 test_euromillions.py
       - name: Loto
         working-directory: loto
         run: python3 test_loto.py

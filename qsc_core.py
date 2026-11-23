@@ -5,7 +5,7 @@ qsc_core.py : briques communes du protocole QSC (EuroMillions et Loto).
 Extraites des modules de chaque jeu (PR 3/6 du refactor). Règle : aucune constante propre à un
 jeu ici. Ce qui dépend du jeu (univers de numéros, paliers de mise) est passé en paramètre, et
 chaque module de jeu garde des enveloppes minces qui fournissent ses constantes, donc les noms
-et signatures publics de qsc_v40 et qsc_loto ne changent pas.
+et signatures publics de qsc_euromillions et qsc_loto ne changent pas.
 
 Volontairement PAS ici (vraies divergences entre les deux jeux, à trancher à part) :
 n_grids (tolérance flottante 1e-9 côté Loto seulement), null_distribution et backtest_all
