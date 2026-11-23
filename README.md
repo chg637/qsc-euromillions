@@ -4,6 +4,20 @@
 
 Pipeline de sélection de grilles parmi les moins jouées (tirage uniforme dans l'univers impopulaire, diagnostic backtest publié pour mémoire, registre en euros, mise sous budget), exécuté automatiquement par GitHub Actions le matin de chaque tirage (mardi, vendredi — 08:10 Paris). La tâche Claude « QSC EuroMillions v4.0 — Tirage jour (mar/ven) » lit `output/latest.json` et le restitue ; si le run GitHub a été sauté, elle rejoue le pipeline versionné elle-même (sans écrire dans le dépôt).
 
+## Lancer
+
+Un seul point d'entrée pour les deux jeux (EuroMillions et Loto) :
+
+```
+python3 qsc.py jeux                       # jeux connus (fiches dans qsc_games.py)
+python3 qsc.py run euromillions [options] # run du tirage du jour
+python3 qsc.py run loto [options]
+python3 qsc.py update loto [options]      # mise à jour des tirages
+python3 qsc.py test                       # tests des deux jeux + golden
+```
+
+`qsc.py` n'est qu'un aiguilleur : il lance les scripts existants (`run_qsc.py`, `loto/run_loto.py`, `update_*`) dans le même dossier que les workflows et leur transmet les options telles quelles. Les workflows de production n'en dépendent pas encore.
+
 ## Contenu
 
 | Fichier | Rôle |
@@ -11,8 +25,8 @@ Pipeline de sélection de grilles parmi les moins jouées (tirage uniforme dans 
 | `euromillions_MASTER.csv` | Historique complet des tirages (`date;n1..n5;e1;e2`), mis à jour par l'Action. Source : [API pedromealha](https://euromillions.api.pedromealha.dev/). |
 | `euromillions_PRIZES.csv` | Gagnants par rang à chaque tirage (`date;w5_2;…;w1_2`), append-only, même source. Sert à estimer la popularité (R7). |
 | `popularite.py` | R7 : popularité relative des numéros et étoiles estimée sur les gagnants par rang (ratio 3 num./2 num., 2 ét./1 ét.), stdlib. |
-| `qsc_v40.py` | Module : univers impopulaire (décile le moins populaire des C(50,5) sous la table R7, repli proxy UK), **tirage uniforme par seed** dans cet univers (A1), règle de mise 1/2/3/4 grilles sous budget annuel de 520 € (A2), 6 selectors backtestés en walk-forward step 1 à titre de diagnostic (null hypergéométrique exacte + max-statistic), étoiles par ère de pool 9/11/12, checklist. Plus de porteur, de rotation ni de consensus depuis l'audit du 04/11/2026. Les versions antérieures (v36 à v39) sont rangées dans `archive/`. |
-| `test_qsc_v40.py` | 98 tests unitaires (`python3 test_qsc_v40.py`). |
+| `qsc_euromillions.py` | Module : univers impopulaire (décile le moins populaire des C(50,5) sous la table R7, repli proxy UK), **tirage uniforme par seed** dans cet univers (A1), règle de mise 1/2/3/4 grilles sous budget annuel de 520 € (A2), 6 selectors backtestés en walk-forward step 1 à titre de diagnostic (null hypergéométrique exacte + max-statistic), étoiles par ère de pool 9/11/12, checklist. Plus de porteur, de rotation ni de consensus depuis l'audit du 04/11/2026. Les versions antérieures (v36 à v39) sont rangées dans `archive/`. |
+| `test_euromillions.py` | Tests unitaires (`python3 test_euromillions.py`). |
 | `tools/calibration_r7.py` | Hors pipeline (numpy) : calibration des pentes de `popularite.py` et contrôle croisé. |
 | `update_master.py` | Refresh append-only du CSV depuis l'API, refus d'écrire si l'intégrité casse, alimente `euromillions_PRIZES.csv`, conserve les réponses annuelles dans `output/api_cache/` (montants par rang), écrit `output/api_meta.json`. |
 | `run_qsc.py` | Pipeline complet : jackpot officiel lu sur fdj.fr (repli estimation API), registre rapproché en euros, tirage des grilles → `output/latest.json`, `output/latest.html`, `output/registre.csv`, `output/history/<date>.json`. |
@@ -30,7 +44,7 @@ Pipeline de sélection de grilles parmi les moins jouées (tirage uniforme dans 
 ## Lancer en local
 
 ```bash
-python3 test_qsc_v40.py
+python3 test_euromillions.py
 python3 update_master.py            # ~15 s, dépend de l'API
 python3 run_qsc.py [--jackpot 95] [--no-fdj]   # ~30 s (5 000 simulations null)
 ```

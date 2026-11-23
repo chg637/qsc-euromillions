@@ -11,7 +11,7 @@ Sortie : code 0 si OK (même sans nouveauté), 2 si l'API ET le repli FDJ sont i
 """
 import argparse, csv, io, json, os, sys, time, urllib.request, urllib.error, zipfile
 from datetime import date, datetime
-import qsc_v40 as q
+import qsc_euromillions as q
 import popularite as P
 
 API = "https://euromillions.api.pedromealha.dev/v1/draws?year={year}"

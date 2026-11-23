@@ -10,7 +10,7 @@ indicatrices des numéros tirés → effet relatif par numéro. Idem étoiles av
 import json, glob, math, sys, os, random
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import qsc_v40 as q
+import qsc_euromillions as q
 
 API_DIR = sys.argv[1] if len(sys.argv) > 1 else "api_json"
 rows = []

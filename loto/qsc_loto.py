@@ -41,22 +41,29 @@ Les écarts backtestés sont du bruit statistique — méthodologie documentée,
 import csv, math, random, itertools, bisect, hashlib, os
 from collections import Counter, defaultdict
 from datetime import date, timedelta
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # qsc_core.py vit à la racine
+import qsc_core as _core
+from qsc_core import (dataset_fingerprint, overlap, popularity_proxy_uk, _normalize, bootstrap_ci,
+                      p_value_from_null, verdict, seed_from_draw_date)
+import qsc_games
+from qsc_games import LOTO as _G
 
 VERSION = "2.1"   # 11/11/2026 : fiabilité du run, alignée sur EuroMillions v4.1 ; méthode inchangée
-GAME = "Loto"
-N_POOL, K_PICK = 49, 5
+GAME = _G.nom
+N_POOL, K_PICK = _G.n_pool, _G.k_pick
 ALL_NUMS = list(range(1, N_POOL + 1))
-ALL_CHANCE = list(range(1, 11))
+ALL_CHANCE = list(range(1, _G.bonus_pool + 1))
 BASELINE = K_PICK * K_PICK / N_POOL          # E[matches] grille aléatoire = 25/49 ≈ 0,510
-CHANCE_BASELINE = 1 / 10
+CHANCE_BASELINE = 1 / _G.bonus_pool
 N_COMBOS = math.comb(N_POOL, K_PICK)          # 1 906 884
 P_RANG1 = 1 / (N_COMBOS * 10)                 # 1/19 068 840
-PRIX_GRILLE = 2.20
-BUDGET_EUR = 520.0            # plafond annuel de mise, tous jeux confondus (décision du 05/11/2026)
-PALIERS_MEUR = (100, 150, 200)   # 1 grille, +1 à chaque palier franchi (mêmes paliers que l'EuroMillions)
-VENTES_DEFAUT = 3_900_000     # grilles vendues par tirage (médiane 2026 estimée sur les rangs 6 à 9)
-EV_RANGS_BAS_DEFAUT = 0.84    # EV des rangs 2 à 9 par grille (montants du 04/11/2026), si le cache de montants manque
-DRAW_WEEKDAYS = (0, 2, 5)                     # lundi, mercredi, samedi
+PRIX_GRILLE = _G.prix_grille
+BUDGET_EUR = qsc_games.BUDGET_ANNUEL_EUR            # plafond annuel de mise, tous jeux confondus (décision du 05/11/2026)
+PALIERS_MEUR = qsc_games.PALIERS_MEUR   # 1 grille, +1 à chaque palier franchi (mêmes paliers que l'EuroMillions)
+VENTES_DEFAUT = _G.ventes_defaut     # grilles vendues par tirage (médiane 2026 estimée sur les rangs 6 à 9)
+EV_RANGS_BAS_DEFAUT = _G.ev_rangs_bas_defaut    # EV des rangs 2 à 9 par grille (montants du 04/11/2026), si le cache de montants manque
+DRAW_WEEKDAYS = _G.draw_weekdays                     # lundi, mercredi, samedi
 
 # ---------------------------------------------------------------- DONNÉES
 
@@ -95,62 +102,25 @@ def integrity_check(draws):
     if len(draws) < 2500: alerts.append(f"profondeur faible: {len(draws)} tirages")
     return (len(alerts) == 0, alerts)
 
-def dataset_fingerprint(draws, source):
-    h = hashlib.sha256(repr(draws).encode()).hexdigest()[:12]
-    return {"n": len(draws), "premier": draws[0][0], "dernier": draws[-1][0], "source": source, "hash": h}
-
 # ---------------------------------------------------------------- CATALOGUE — NUMÉROS
 
 def m_freq_globale(draws):
-    c = Counter()
-    for _, n, _ in draws: c.update(n)
-    return {x: c.get(x, 0) for x in ALL_NUMS}
+    return _core.m_freq_globale(draws, ALL_NUMS)
 
 def m_lag(draws):
-    gap = {x: len(draws) for x in ALL_NUMS}
-    for i, (_, nums, _) in enumerate(reversed(draws)):
-        for x in nums:
-            if gap[x] == len(draws): gap[x] = i
-    return {x: gap[x] / 10.0 for x in ALL_NUMS}
+    return _core.m_lag(draws, ALL_NUMS)
 
 def m_fenetres(draws, windows=(10, 20, 30)):
-    s = {x: 0.0 for x in ALL_NUMS}
-    for w in windows:
-        c = Counter()
-        for _, n, _ in draws[-w:]: c.update(n)
-        tot = sum(c.values()) or 1
-        for x in ALL_NUMS: s[x] += c.get(x, 0) / tot / len(windows)
-    return s
+    return _core.m_fenetres(draws, ALL_NUMS, windows)
 
 def m_momentum(draws, recent=10, prior=10):
-    cr, cp = Counter(), Counter()
-    for _, n, _ in draws[-recent:]: cr.update(n)
-    for _, n, _ in draws[-(recent+prior):-recent]: cp.update(n)
-    return {x: cr.get(x, 0)/recent - cp.get(x, 0)/prior for x in ALL_NUMS}
+    return _core.m_momentum(draws, ALL_NUMS, recent, prior)
 
 def m_cooccurrence(draws):
-    if not draws: return {x: 0.0 for x in ALL_NUMS}
-    last = set(draws[-1][1]); co = defaultdict(float)
-    for _, nums, _ in draws:
-        inter = set(nums) & last
-        if inter:
-            for x in nums:
-                if x not in last: co[x] += len(inter)
-    return {x: co.get(x, 0.0) for x in ALL_NUMS}
+    return _core.m_cooccurrence(draws, ALL_NUMS)
 
 def m_markov(draws):
-    tc = defaultdict(lambda: defaultdict(int)); occ = defaultdict(int)
-    for i in range(len(draws)-1):
-        nxt = set(draws[i+1][1])
-        for m in draws[i][1]:
-            occ[m] += 1
-            for n in nxt: tc[m][n] += 1
-    s = {x: 0.0 for x in ALL_NUMS}
-    if not draws: return s
-    for m in draws[-1][1]:
-        if occ[m]:
-            for x in ALL_NUMS: s[x] += tc[m].get(x, 0) / occ[m]
-    return s
+    return _core.m_markov(draws, ALL_NUMS)
 
 CATALOG = {
     "Fréquence globale":      {"type": "selector", "fn": m_freq_globale},
@@ -165,7 +135,7 @@ CATALOG = {
 SELECTORS = [k for k, v in CATALOG.items() if v["type"] == "selector"]
 
 def top5(scores):
-    return tuple(sorted(sorted(ALL_NUMS, key=lambda n: -scores[n])[:5]))
+    return _core.top5(scores, ALL_NUMS)
 
 # ---------------------------------------------------------------- CATALOGUE — NUMÉRO CHANCE
 
@@ -191,29 +161,12 @@ CHANCE_CATALOG = {"Chance — fréquence": c_freq, "Chance — lag": c_lag, "Cha
 def top1_chance(scores):
     return max(scores, key=lambda s: scores[s])
 
-def overlap(a, b):
-    return len(set(a) & set(b))
-
 # ---------------------------------------------------------------- POPULARITÉ (table injectable)
 # Repli : même forme que le proxy UK Lotto (1-49), normalisé. En production, run_loto.py injecte la
 # table estimée par popularite_loto.py sur les gagnants par rang FDJ.
 
-def popularity_proxy_uk(n):
-    if n <= 12:   base = 1.55
-    elif n <= 31: base = 1.30
-    elif n <= 40: base = 0.80
-    else:         base = 0.62
-    if n == 7:  base *= 1.25
-    elif n == 3: base *= 1.10
-    elif n % 7 == 0 and n != 7: base *= 1.05
-    return base
-
 def chance_popularity_proxy(c):
     return {7: 1.35, 3: 1.15, 1: 1.1, 5: 1.05, 9: 1.0, 2: 0.95, 4: 0.95, 6: 0.95, 8: 0.85, 10: 0.8}[c]
-
-def _normalize(table, keys):
-    m = sum(table[k] for k in keys) / len(keys)
-    return {k: table[k] / m for k in keys}
 
 POP = {"source": "proxy (repli)", "nums": None, "chance": None, "meta": {}}
 _UNIVERSE_CACHE = {}
@@ -274,8 +227,8 @@ def expected_cowinners(nums, chance=None, n_tickets=VENTES_DEFAUT):
     """Co-gagnants attendus au rang 1 si la grille gagne (descriptif ; ~3,9 M de grilles par tirage)."""
     return n_tickets * P_RANG1 * relative_popularity(nums, chance)
 
-IMPOP_QUANTILE = 0.10
-CHANCE_QUANTILE = 0.30        # les 3 numéros Chance les moins joués
+IMPOP_QUANTILE = _G.impop_quantile
+CHANCE_QUANTILE = _G.bonus_quantile        # les 3 numéros Chance les moins joués
 
 def impopular_universe(quantile=IMPOP_QUANTILE):
     if quantile in _UNIVERSE_CACHE: return _UNIVERSE_CACHE[quantile]
@@ -307,11 +260,6 @@ def walk_forward_chance(model_fn, draws, burn_in=150, step=1):
         pts.append(1 if top1_chance(model_fn(draws[:t])) == draws[t][2] else 0); t += step
     return pts
 
-def bootstrap_ci(points, n_boot=10_000, seed=0):
-    rng = random.Random(seed); n = len(points)
-    means = sorted(sum(rng.choices(points, k=n))/n for _ in range(n_boot))
-    return means[int(0.025*n_boot)], means[int(0.975*n_boot)]
-
 def hypergeom_pmf(N=N_POOL, K=K_PICK, k_draw=K_PICK):
     tot = math.comb(N, k_draw)
     return [math.comb(K, k) * math.comb(N-K, k_draw-k) / tot for k in range(k_draw+1)]
@@ -335,10 +283,6 @@ def null_distribution(groups, n_models, n_sim=5000, seed=0):
         maxes.append(best)
     single.sort(); maxes.sort()
     return {"single": single, "max": maxes}
-
-def p_value_from_null(observed, sorted_null):
-    n = len(sorted_null)
-    return max(1, n - bisect.bisect_left(sorted_null, observed)) / (n + 1)
 
 def backtest_all(draws, burn_in=150, step=1, seed=0, n_sim=5000):
     out = {}
@@ -373,13 +317,6 @@ def backtest_chance(draws, burn_in=150, step=1, seed=0, n_sim=5000):
     return out, {"n_points": n_pts, "n_models": len(CHANCE_CATALOG), "best_edge": best,
                  "p_global": p_value_from_null(best, null["max"])}
 
-def verdict(bt, meta):
-    if any(r["significant"] for r in bt.values()):
-        return ("Au moins un modèle reste significatif après correction des tests multiples "
-                f"(p global = {meta['p_global']:.3f}) — à examiner avec prudence (un seul échantillon) ; la sélection reste uniforme.")
-    return ("Aucun modèle ne se distingue du hasard sur cet échantillon "
-            f"(p global = {meta['p_global']:.2f}) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.")
-
 # ---------------------------------------------------------------- GÉNÉRATION (A1, A2)
 
 def draw_grids(seed, n, universe=None, chance_univ=None, max_ov=2):
@@ -403,8 +340,8 @@ def draw_grids(seed, n, universe=None, chance_univ=None, max_ov=2):
     return out
 
 def n_grids_regle(jackpot_meur):
-    """A2 — 1 grille, +1 par palier franchi (100, 150, 200 M€)."""
-    return 1 + sum(1 for p in PALIERS_MEUR if jackpot_meur >= p)
+    """A2 : 1 grille, +1 par palier franchi (PALIERS_MEUR)."""
+    return _core.n_grids_regle(jackpot_meur, PALIERS_MEUR)
 
 def n_grids(jackpot_meur, plancher=0, depense_annee=0.0, budget=None, prix=None):
     """Nombre de grilles du run : max(règle jackpot, plancher), borné par le budget restant de
@@ -465,9 +402,6 @@ def next_draw_date(today):
     d = today
     while d.weekday() not in DRAW_WEEKDAYS: d += timedelta(days=1)
     return d
-
-def seed_from_draw_date(d):
-    return int(d.replace("-", ""))
 
 # ---------------------------------------------------------------- CHECKLIST
 
