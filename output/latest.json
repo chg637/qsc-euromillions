@@ -1,9 +1,9 @@
 {
  "version": "4.1",
- "run_date": "2026-11-20",
- "draw_date": "2026-11-20",
- "draw_date_fr": "vendredi 20/11/2026",
- "seed": 20261120,
+ "run_date": "2026-11-24",
+ "draw_date": "2026-11-24",
+ "draw_date_fr": "mardi 24/11/2026",
+ "seed": 20261124,
  "dataset": {
   "n": 1999,
   "premier": "2004-02-13",
@@ -11,25 +11,27 @@
   "source": "csv",
   "hash": "547c96d35e78",
   "integrite": true,
-  "alertes": [],
-  "retard_tirages": 0
+  "alertes": [
+   "dataset en retard de 1 tirage(s) : dernier connu 2026-11-17, attendu 2026-11-20 (rapprochement et jackpot estimé incomplets)"
+  ],
+  "retard_tirages": 1
  },
  "jackpot": {
-  "meur": 37.0,
+  "meur": 46.0,
   "source": "fdj.fr",
   "fiable": true,
-  "note": "montant officiel lu sur fdj.fr (estimation API : 17 M€)"
+  "note": "montant officiel lu sur fdj.fr (estimation API : 99 M€)"
  },
  "n_grilles": 1,
  "grilles_figees": 0,
  "n_grilles_regle_jackpot": 1,
  "n_grilles_plancher": null,
  "mise": {
-  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 37 M€)",
+  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 46 M€)",
   "budget_eur": 520.0,
   "prix_grille": 2.5,
-  "depense_annee_avant_run": 182.6,
-  "dont_autres_jeux": 17.6
+  "depense_annee_avant_run": 191.7,
+  "dont_autres_jeux": 24.2
  },
  "selection": {
   "regle": "univers = décile le moins populaire des C(50,5) (table R7) hors motifs pénalisés ; tirage uniforme par seed à l'intérieur, recouvrement ≤ 2 numéros, paires d'étoiles distinctes",
@@ -219,23 +221,23 @@
   {
    "id": 1,
    "nums": [
-    16,
-    25,
-    45,
-    47,
-    49
+    30,
+    31,
+    34,
+    42,
+    48
    ],
    "stars": [
-    6,
-    10
+    10,
+    12
    ],
-   "sum": 182,
-   "even": 1,
-   "low": 2,
-   "anti_share": 93.7,
-   "rel_popularity": 0.606,
-   "cowinners": 0.053,
-   "ev_nette": -1.772
+   "sum": 185,
+   "even": 4,
+   "low": 0,
+   "anti_share": 97.5,
+   "rel_popularity": 0.394,
+   "cowinners": 0.034,
+   "ev_nette": -1.707
   }
  ],
  "backtest": {
@@ -247,8 +249,8 @@
    "n_models": 6,
    "n_sim": 5000,
    "best_edge": 0.014332071389940526,
-   "p_global": 0.6590681863627275,
-   "null_max_q95": 0.03596538669551109
+   "p_global": 0.6422715456908619,
+   "null_max_q95": 0.03542455381287182
   },
   "numeros": {
    "Fréquence globale": {
@@ -257,10 +259,10 @@
     "edge": -0.0013520822065981597,
     "ci": [
      -0.030557057869118442,
-     0.027312060573282837
+     0.028934559221200695
     ],
-    "p_raw": 0.5200959808038392,
-    "p_adj": 0.9898020395920816,
+    "p_raw": 0.5208958208358329,
+    "p_adj": 0.9870025994801039,
     "significant": false
    },
    "Lag / retard normalisé": {
@@ -268,10 +270,10 @@
     "avg": 0.48134126554894535,
     "edge": -0.018658734451054648,
     "ci": [
-     -0.04678204434829636,
-     0.010005408328826348
+     -0.047322877230935645,
+     0.010546241211465635
     ],
-    "p_raw": 0.8960207958408318,
+    "p_raw": 0.8968206358728255,
     "p_adj": 0.9998000399920016,
     "significant": false
    },
@@ -280,11 +282,11 @@
     "avg": 0.4899945916711736,
     "edge": -0.010005408328826404,
     "ci": [
-     -0.03975121687398592,
-     0.019740400216333165
+     -0.0386695511087074,
+     0.02028123309897245
     ],
-    "p_raw": 0.75124975004999,
-    "p_adj": 0.9994001199760048,
+    "p_raw": 0.752249550089982,
+    "p_adj": 0.9996000799840032,
     "significant": false
    },
    "Momentum": {
@@ -295,8 +297,8 @@
      -0.014332071389940526,
      0.04353704705246075
     ],
-    "p_raw": 0.16416716656668667,
-    "p_adj": 0.6590681863627275,
+    "p_raw": 0.15856828634273146,
+    "p_adj": 0.6422715456908619,
     "significant": false
    },
    "Co-occurrence / graphe": {
@@ -304,11 +306,11 @@
     "avg": 0.5040562466197945,
     "edge": 0.004056246619794535,
     "ci": [
-     -0.02568956192536509,
+     -0.025148729042725804,
      0.034342888047593334
     ],
-    "p_raw": 0.374125174965007,
-    "p_adj": 0.9486102779444111,
+    "p_raw": 0.3759248150369926,
+    "p_adj": 0.943011397720456,
     "significant": false
    },
    "Chaînes de Markov": {
@@ -319,23 +321,23 @@
      -0.03326122228231476,
      0.025148729042725804
     ],
-    "p_raw": 0.5902819436112777,
-    "p_adj": 0.996000799840032,
+    "p_raw": 0.596880623875225,
+    "p_adj": 0.9956008798240352,
     "significant": false
    }
   },
-  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.66) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.",
+  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.64) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.",
   "etoiles": {
    "Étoiles — fréquence": {
     "n": 1849,
     "avg": 0.37696051919956736,
     "edge": 0.020715538292607,
     "ci": [
-     -0.002327220282871965,
-     0.04475801825720703
+     -0.0026331459538598318,
+     0.04455042583760812
     ],
     "p_raw": 0.04079184163167367,
-    "p_adj": 0.11637672465506899,
+    "p_adj": 0.1191761647670466,
     "significant": false
    },
    "Étoiles — lag": {
@@ -343,11 +345,11 @@
     "avg": 0.36884802595997834,
     "edge": 0.012603045053018031,
     "ci": [
-     -0.011122583323773139,
-     0.03624672905365174
+     -0.010865824278479748,
+     0.036252192012062236
     ],
-    "p_raw": 0.14557088582283542,
-    "p_adj": 0.3613277344531094,
+    "p_raw": 0.132373525294941,
+    "p_adj": 0.3655268946210758,
     "significant": false
    },
    "Étoiles — fenêtres": {
@@ -355,11 +357,11 @@
     "avg": 0.37101135749053543,
     "edge": 0.01476637658357509,
     "ci": [
-     -0.00870249274792269,
-     0.03860672708698671
+     -0.008789900082490651,
+     0.03843191241785079
     ],
-    "p_raw": 0.10817836432713457,
-    "p_adj": 0.27174565086982605,
+    "p_raw": 0.09898020395920816,
+    "p_adj": 0.27874425114977003,
     "significant": false
    }
   },
@@ -367,7 +369,7 @@
    "n_points": 1849,
    "n_models": 3,
    "best_edge": 0.020715538292607,
-   "p_global": 0.11637672465506899
+   "p_global": 0.1191761647670466
   }
  },
  "chi2": {
@@ -375,44 +377,7 @@
   "p": 0.297
  },
  "registre": {
-  "rapproche": [
-   {
-    "run_date": "2026-11-13",
-    "draw_date": "2026-11-13",
-    "grid": "1",
-    "model": "uniforme-univers-R7",
-    "nums": "2-30-40-41-43",
-    "stars": "10-12",
-    "seed": "20261113",
-    "jackpot_meur": "17.0",
-    "real_nums": "16-27-32-41-45",
-    "real_stars": "2-12",
-    "match_nums": "1",
-    "match_stars": "1",
-    "rang": 0,
-    "gain_eur": 0.0,
-    "gagnants_rang": "",
-    "gagnants_attendus_rang": ""
-   },
-   {
-    "run_date": "2026-11-17",
-    "draw_date": "2026-11-17",
-    "grid": "1",
-    "model": "uniforme-univers-R7",
-    "nums": "31-33-40-43-50",
-    "stars": "10-12",
-    "seed": "20261117",
-    "jackpot_meur": "26.0",
-    "real_nums": "35-37-38-46-48",
-    "real_stars": "1-2",
-    "match_nums": "0",
-    "match_stars": "0",
-    "rang": 0,
-    "gain_eur": 0.0,
-    "gagnants_rang": "",
-    "gagnants_attendus_rang": ""
-   }
-  ],
+  "rapproche": [],
   "cumul": {
    "grilles": 66,
    "match_nums": 34,
@@ -432,9 +397,9 @@
    "gagnants_observes": 3884722.0,
    "gagnants_attendus": 3819270.2,
    "taux_partage": 1.017,
-   "depense_euromillions_annee_eur": 167.5,
-   "depense_autres_jeux_eur": 17.6,
-   "depense_annee_eur": 185.1,
+   "depense_euromillions_annee_eur": 170.0,
+   "depense_autres_jeux_eur": 24.2,
+   "depense_annee_eur": 194.2,
    "budget_eur": 520.0,
    "annee": 2026
   }
@@ -445,5 +410,5 @@
   "ok": true,
   "fails": []
  },
- "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v4.1 — tirage du vendredi 20/11/2026 · 1999 tirages · seed 20261120\nJackpot 37 M€ (fdj.fr) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 37 M€))\n\nG1 : 16 25 45 47 49 ★ 06 10  (joueurs attendus ×0.61, EV nette -1.77 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer (parmi les grilles les moins jouées), jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard (Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.66) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.)\nPopularité : R7 — gagnants par rang (pool européen) — 1620 tirages ; étoiles les moins jouées : 12, 10, 11, 1.\nBudget : 185.10 € dépensés en 2026 sur 520 € (dont 17.60 € au Loto).\nCumul : 34 numéros trouvés sur 66 grilles (attendu 33.0, écart +1.0 ± 10.24) · mise 165.00 €, gains 35.49 € · partage observé ×1.02 sur 6 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v4.1 — tirage du mardi 24/11/2026 · 1999 tirages · seed 20261124\nJackpot 46 M€ (fdj.fr) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 46 M€))\n\nG1 : 30 31 34 42 48 ★ 10 12  (joueurs attendus ×0.39, EV nette -1.71 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer (parmi les grilles les moins jouées), jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard (Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.64) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.)\nPopularité : R7 — gagnants par rang (pool européen) — 1620 tirages ; étoiles les moins jouées : 12, 10, 11, 1.\nBudget : 194.20 € dépensés en 2026 sur 520 € (dont 24.20 € au Loto).\nCumul : 34 numéros trouvés sur 66 grilles (attendu 33.0, écart +1.0 ± 10.24) · mise 165.00 €, gains 35.49 € · partage observé ×1.02 sur 6 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
 }
