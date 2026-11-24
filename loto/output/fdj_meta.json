@@ -1,19 +1,19 @@
 {
- "fetched_at": "2026-11-23",
+ "fetched_at": "2026-11-24",
  "added": [
-  "2026-11-21"
+  "2026-11-23"
  ],
  "last_draw": {
-  "date": "2026-11-21",
+  "date": "2026-11-23",
   "has_winner": false,
-  "jackpot_eur": 2000000.0,
+  "jackpot_eur": 3000000.0,
   "jackpot_winners": 0
  },
  "fingerprint": {
-  "n": 2837,
+  "n": 2838,
   "premier": "2008-10-06",
-  "dernier": "2026-11-21",
+  "dernier": "2026-11-23",
   "source": "csv+fdj",
-  "hash": "c212cc7e5acd"
+  "hash": "b6348290e1f7"
  }
 }
