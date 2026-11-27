@@ -1,42 +1,40 @@
 {
  "version": "4.1",
- "run_date": "2026-11-24",
- "draw_date": "2026-11-24",
- "draw_date_fr": "mardi 24/11/2026",
- "seed": 20261124,
+ "run_date": "2026-11-27",
+ "draw_date": "2026-11-27",
+ "draw_date_fr": "vendredi 27/11/2026",
+ "seed": 20261127,
  "dataset": {
-  "n": 1999,
+  "n": 2001,
   "premier": "2004-02-13",
-  "dernier": "2026-11-17",
+  "dernier": "2026-11-24",
   "source": "csv",
-  "hash": "547c96d35e78",
+  "hash": "2d75ec5b9ac3",
   "integrite": true,
-  "alertes": [
-   "dataset en retard de 1 tirage(s) : dernier connu 2026-11-17, attendu 2026-11-20 (rapprochement et jackpot estimé incomplets)"
-  ],
-  "retard_tirages": 1
+  "alertes": [],
+  "retard_tirages": 0
  },
  "jackpot": {
-  "meur": 46.0,
+  "meur": 59.0,
   "source": "fdj.fr",
   "fiable": true,
-  "note": "montant officiel lu sur fdj.fr (estimation API : 99 M€)"
+  "note": "montant officiel lu sur fdj.fr (estimation API : 17 M€)"
  },
  "n_grilles": 1,
  "grilles_figees": 0,
  "n_grilles_regle_jackpot": 1,
  "n_grilles_plancher": null,
  "mise": {
-  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 46 M€)",
+  "regle": "1 grille, +1 à 100, 150 et 200 M€ (1 pour 59 M€)",
   "budget_eur": 520.0,
   "prix_grille": 2.5,
-  "depense_annee_avant_run": 191.7,
+  "depense_annee_avant_run": 194.2,
   "dont_autres_jeux": 24.2
  },
  "selection": {
   "regle": "univers = décile le moins populaire des C(50,5) (table R7) hors motifs pénalisés ; tirage uniforme par seed à l'intérieur, recouvrement ≤ 2 numéros, paires d'étoiles distinctes",
   "quantile": 0.1,
-  "univers_grilles": 188221,
+  "univers_grilles": 188210,
   "total_grilles": 2118760,
   "seuil_gp": 0.9411,
   "etoiles_univers": [
@@ -112,76 +110,76 @@
   "max_recouvrement": 2,
   "etoiles_quantile": 0.25,
   "popularite_source": "R7 — gagnants par rang (pool européen)",
-  "ventes_estimees": 12191946.6849354
+  "ventes_estimees": 15954856.688923342
  },
  "popularite": {
   "source": "R7 — gagnants par rang (pool européen)",
   "estimee": true,
   "nums": {
-   "1": 0.9996,
+   "1": 0.9995,
    "2": 1.0166,
-   "3": 1.0464,
-   "4": 1.0729,
-   "5": 1.0979,
+   "3": 1.0454,
+   "4": 1.073,
+   "5": 1.0969,
    "6": 1.0526,
-   "7": 1.1847,
-   "8": 1.0943,
+   "7": 1.1848,
+   "8": 1.095,
    "9": 1.1256,
-   "10": 1.0963,
-   "11": 1.137,
-   "12": 1.1486,
-   "13": 1.1482,
+   "10": 1.0964,
+   "11": 1.1371,
+   "12": 1.1487,
+   "13": 1.1483,
    "14": 1.0495,
-   "15": 1.0488,
-   "16": 1.0247,
-   "17": 1.1343,
-   "18": 1.0325,
-   "19": 1.0985,
-   "20": 0.9976,
-   "21": 1.0686,
-   "22": 1.0817,
-   "23": 1.1095,
-   "24": 1.0218,
-   "25": 1.0385,
-   "26": 1.0132,
-   "27": 1.098,
+   "15": 1.0489,
+   "16": 1.0248,
+   "17": 1.1344,
+   "18": 1.0324,
+   "19": 1.0986,
+   "20": 0.9977,
+   "21": 1.0692,
+   "22": 1.0818,
+   "23": 1.1096,
+   "24": 1.0224,
+   "25": 1.0386,
+   "26": 1.0131,
+   "27": 1.0979,
    "28": 1.0705,
-   "29": 1.0034,
+   "29": 1.0035,
    "30": 0.9771,
-   "31": 0.9525,
-   "32": 0.9525,
+   "31": 0.9526,
+   "32": 0.9526,
    "33": 0.9847,
    "34": 0.894,
    "35": 0.907,
-   "36": 0.8338,
-   "37": 0.9084,
+   "36": 0.8345,
+   "37": 0.9075,
    "38": 0.9376,
-   "39": 0.9339,
+   "39": 0.934,
    "40": 0.8599,
-   "41": 0.8524,
+   "41": 0.8525,
    "42": 0.9193,
-   "43": 0.8773,
-   "44": 0.9317,
-   "45": 0.8772,
-   "46": 0.8354,
+   "43": 0.8774,
+   "44": 0.9309,
+   "45": 0.8771,
+   "46": 0.8353,
    "47": 0.872,
    "48": 0.8353,
-   "49": 0.8589,
-   "50": 0.8873
+   "49": 0.8585,
+   "50": 0.8874
   },
   "stars": {
-   "1": 0.9517,
-   "2": 1.0755,
-   "3": 1.0935,
-   "4": 0.9982,
-   "5": 1.0949,
-   "6": 1.0299,
-   "7": 1.1497,
-   "8": 1.0962,
-   "9": 1.0728,
-   "10": 0.8414,
-   "11": 0.8635,
-   "12": 0.7326
+   "1": 0.9515,
+   "2": 1.0757,
+   "3": 1.0938,
+   "4": 0.9985,
+   "5": 1.0939,
+   "6": 1.029,
+   "7": 1.15,
+   "8": 1.096,
+   "9": 1.0731,
+   "10": 0.8417,
+   "11": 0.8637,
+   "12": 0.7329
   },
   "nums_min": 36,
   "nums_max": 7,
@@ -205,11 +203,11 @@
    "32-40": 0.912,
    "41-50": 0.875
   },
-  "n_tirages_nums": 1620,
-  "n_tirages_stars": 1058,
+  "n_tirages_nums": 1622,
+  "n_tirages_stars": 1060,
   "periode": [
    "2011-05-10",
-   "2026-11-17"
+   "2026-11-24"
   ],
   "r2_nums": 0.569,
   "se_moyen_nums": 0.0138,
@@ -221,23 +219,23 @@
   {
    "id": 1,
    "nums": [
-    30,
-    31,
-    34,
-    42,
-    48
+    28,
+    36,
+    40,
+    46,
+    50
    ],
    "stars": [
-    10,
-    12
+    1,
+    10
    ],
-   "sum": 185,
-   "even": 4,
+   "sum": 200,
+   "even": 5,
    "low": 0,
-   "anti_share": 97.5,
-   "rel_popularity": 0.394,
-   "cowinners": 0.034,
-   "ev_nette": -1.707
+   "anti_share": 99.4,
+   "rel_popularity": 0.456,
+   "cowinners": 0.052,
+   "ev_nette": -1.619
   }
  ],
  "backtest": {
@@ -245,161 +243,198 @@
   "meta": {
    "burn_in": 150,
    "step": 1,
-   "n_points": 1849,
+   "n_points": 1851,
    "n_models": 6,
    "n_sim": 5000,
-   "best_edge": 0.014332071389940526,
-   "p_global": 0.6422715456908619,
-   "null_max_q95": 0.03542455381287182
+   "best_edge": 0.014856834143706088,
+   "p_global": 0.649870025994801,
+   "null_max_q95": 0.03646677471636953
   },
   "numeros": {
    "Fréquence globale": {
-    "n": 1849,
-    "avg": 0.49864791779340184,
-    "edge": -0.0013520822065981597,
+    "n": 1851,
+    "avg": 0.49864937871420856,
+    "edge": -0.0013506212857914424,
     "ci": [
-     -0.030557057869118442,
-     0.028934559221200695
+     -0.030524041058887064,
+     0.028363047001620734
     ],
-    "p_raw": 0.5208958208358329,
-    "p_adj": 0.9870025994801039,
+    "p_raw": 0.5140971805638872,
+    "p_adj": 0.9872025594881024,
     "significant": false
    },
    "Lag / retard normalisé": {
-    "n": 1849,
-    "avg": 0.48134126554894535,
-    "edge": -0.018658734451054648,
+    "n": 1851,
+    "avg": 0.4813614262560778,
+    "edge": -0.018638573743922193,
     "ci": [
-     -0.047322877230935645,
-     0.010546241211465635
+     -0.04727174500270126,
+     0.010534846029173428
     ],
-    "p_raw": 0.8968206358728255,
+    "p_raw": 0.8910217956408718,
     "p_adj": 0.9998000399920016,
     "significant": false
    },
    "Fenêtres glissantes": {
-    "n": 1849,
-    "avg": 0.4899945916711736,
-    "edge": -0.010005408328826404,
+    "n": 1851,
+    "avg": 0.4900054024851432,
+    "edge": -0.009994597514856818,
     "ci": [
-     -0.0386695511087074,
-     0.02028123309897245
+     -0.03916801728795244,
+     0.019178822258238748
     ],
-    "p_raw": 0.752249550089982,
+    "p_raw": 0.738252349530094,
     "p_adj": 0.9996000799840032,
     "significant": false
    },
    "Momentum": {
-    "n": 1849,
-    "avg": 0.5143320713899405,
-    "edge": 0.014332071389940526,
+    "n": 1851,
+    "avg": 0.5148568341437061,
+    "edge": 0.014856834143706088,
     "ci": [
-     -0.014332071389940526,
-     0.04353704705246075
+     -0.013776337115072923,
+     0.043490005402485155
     ],
-    "p_raw": 0.15856828634273146,
-    "p_adj": 0.6422715456908619,
+    "p_raw": 0.15576884623075385,
+    "p_adj": 0.649870025994801,
     "significant": false
    },
    "Co-occurrence / graphe": {
-    "n": 1849,
-    "avg": 0.5040562466197945,
-    "edge": 0.004056246619794535,
+    "n": 1851,
+    "avg": 0.5040518638573744,
+    "edge": 0.004051863857374438,
     "ci": [
-     -0.025148729042725804,
-     0.034342888047593334
+     -0.024041058887088074,
+     0.033765532144786614
     ],
-    "p_raw": 0.3759248150369926,
-    "p_adj": 0.943011397720456,
+    "p_raw": 0.3649270145970806,
+    "p_adj": 0.9390121975604879,
     "significant": false
    },
    "Chaînes de Markov": {
-    "n": 1849,
-    "avg": 0.4959437533802055,
-    "edge": -0.004056246619794479,
+    "n": 1851,
+    "avg": 0.4959481361426256,
+    "edge": -0.004051863857374383,
     "ci": [
-     -0.03326122228231476,
-     0.025148729042725804
+     -0.03214478660183684,
+     0.025121555915721183
     ],
-    "p_raw": 0.596880623875225,
+    "p_raw": 0.5870825834833033,
     "p_adj": 0.9956008798240352,
     "significant": false
    }
   },
-  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.64) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.",
+  "verdict": "Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.65) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.",
   "etoiles": {
    "Étoiles — fréquence": {
-    "n": 1849,
-    "avg": 0.37696051919956736,
-    "edge": 0.020715538292607,
+    "n": 1851,
+    "avg": 0.3765532144786602,
+    "edge": 0.020332989538824245,
     "ci": [
-     -0.0026331459538598318,
-     0.04455042583760812
+     -0.00278309840708542,
+     0.04407663889025318
     ],
-    "p_raw": 0.04079184163167367,
-    "p_adj": 0.1191761647670466,
+    "p_raw": 0.04239152169566087,
+    "p_adj": 0.12037592481503699,
     "significant": false
    },
    "Étoiles — lag": {
-    "n": 1849,
-    "avg": 0.36884802595997834,
-    "edge": 0.012603045053018031,
+    "n": 1851,
+    "avg": 0.3684494867639114,
+    "edge": 0.012229261824075457,
     "ci": [
-     -0.010865824278479748,
-     0.036252192012062236
+     -0.01162898569705699,
+     0.03598382528690472
     ],
-    "p_raw": 0.132373525294941,
-    "p_adj": 0.3655268946210758,
+    "p_raw": 0.14397120575884823,
+    "p_adj": 0.3739252149570086,
     "significant": false
    },
    "Étoiles — fenêtres": {
-    "n": 1849,
-    "avg": 0.37101135749053543,
-    "edge": 0.01476637658357509,
+    "n": 1851,
+    "avg": 0.37061048082117776,
+    "edge": 0.014390255881341803,
     "ci": [
-     -0.008789900082490651,
-     0.03843191241785079
+     -0.008545749226462333,
+     0.03823213223537374
     ],
-    "p_raw": 0.09898020395920816,
-    "p_adj": 0.27874425114977003,
+    "p_raw": 0.10917816436712657,
+    "p_adj": 0.2917416516696661,
     "significant": false
    }
   },
   "etoiles_meta": {
-   "n_points": 1849,
+   "n_points": 1851,
    "n_models": 3,
-   "best_edge": 0.020715538292607,
-   "p_global": 0.1191761647670466
+   "best_edge": 0.020332989538824245,
+   "p_global": 0.12037592481503699
   }
  },
  "chi2": {
-  "stat": 53.76,
-  "p": 0.297
+  "stat": 54.2,
+  "p": 0.283
  },
  "registre": {
-  "rapproche": [],
+  "rapproche": [
+   {
+    "run_date": "2026-11-20",
+    "draw_date": "2026-11-20",
+    "grid": "1",
+    "model": "uniforme-univers-R7",
+    "nums": "16-25-45-47-49",
+    "stars": "6-10",
+    "seed": "20261120",
+    "jackpot_meur": "37.0",
+    "real_nums": "8-21-24-36-49",
+    "real_stars": "1-8",
+    "match_nums": "1",
+    "match_stars": "0",
+    "rang": 0,
+    "gain_eur": 0.0,
+    "gagnants_rang": "",
+    "gagnants_attendus_rang": ""
+   },
+   {
+    "run_date": "2026-11-24",
+    "draw_date": "2026-11-24",
+    "grid": "1",
+    "model": "uniforme-univers-R7",
+    "nums": "30-31-34-42-48",
+    "stars": "10-12",
+    "seed": "20261124",
+    "jackpot_meur": "46.0",
+    "real_nums": "3-5-37-44-49",
+    "real_stars": "5-6",
+    "match_nums": "0",
+    "match_stars": "0",
+    "rang": 0,
+    "gain_eur": 0.0,
+    "gagnants_rang": "",
+    "gagnants_attendus_rang": ""
+   }
+  ],
   "cumul": {
-   "grilles": 66,
-   "match_nums": 34,
-   "attendu_nums": 33.0,
+   "grilles": 68,
+   "match_nums": 35,
+   "attendu_nums": 34.0,
    "ecart_nums": 1.0,
-   "ic95_nums": 10.24,
+   "ic95_nums": 10.39,
    "match_stars": 25,
-   "attendu_stars": 22.0,
-   "ecart_stars": 3.0,
-   "ic95_stars": 8.0,
+   "attendu_stars": 22.67,
+   "ecart_stars": 2.33,
+   "ic95_stars": 8.12,
    "meilleur": 3,
-   "mise_eur": 165.0,
+   "mise_eur": 170.0,
    "gains_eur": 35.49,
-   "solde_eur": -129.51,
-   "grilles_en_euros": 66,
+   "solde_eur": -134.51,
+   "grilles_en_euros": 68,
    "rangs_atteints": 6,
    "gagnants_observes": 3884722.0,
    "gagnants_attendus": 3819270.2,
    "taux_partage": 1.017,
-   "depense_euromillions_annee_eur": 170.0,
+   "depense_euromillions_annee_eur": 172.5,
    "depense_autres_jeux_eur": 24.2,
-   "depense_annee_eur": 194.2,
+   "depense_annee_eur": 196.7,
    "budget_eur": 520.0,
    "annee": 2026
   }
@@ -410,5 +445,5 @@
   "ok": true,
   "fails": []
  },
- "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v4.1 — tirage du mardi 24/11/2026 · 1999 tirages · seed 20261124\nJackpot 46 M€ (fdj.fr) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 46 M€))\n\nG1 : 30 31 34 42 48 ★ 10 12  (joueurs attendus ×0.39, EV nette -1.71 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer (parmi les grilles les moins jouées), jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard (Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.64) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.)\nPopularité : R7 — gagnants par rang (pool européen) — 1620 tirages ; étoiles les moins jouées : 12, 10, 11, 1.\nBudget : 194.20 € dépensés en 2026 sur 520 € (dont 24.20 € au Loto).\nCumul : 34 numéros trouvés sur 66 grilles (attendu 33.0, écart +1.0 ± 10.24) · mise 165.00 €, gains 35.49 € · partage observé ×1.02 sur 6 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
+ "chat_summary": "⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle.\n\nQSC EuroMillions v4.1 — tirage du vendredi 27/11/2026 · 2001 tirages · seed 20261127\nJackpot 59 M€ (fdj.fr) → 1 grille(s) (1 grille, +1 à 100, 150 et 200 M€ (1 pour 59 M€))\n\nG1 : 28 36 40 46 50 ★ 01 10  (joueurs attendus ×0.46, EV nette -1.62 €)\n\nToutes les grilles ci-dessus ont exactement la même probabilité de gain : 1/139 838 160 au rang 1. Le pipeline choisit comment jouer (parmi les grilles les moins jouées), jamais mieux jouer.\nSélection : tirage uniforme (seed) parmi les 10 % de grilles les moins jouées, étoiles du quart le moins joué. Aucun modèle ne choisit les numéros : le diagnostic dit qu'aucun ne bat le hasard (Aucun modèle ne se distingue du hasard sur cet échantillon (p global = 0.65) — les numéros sont tirés au sort dans l'univers impopulaire, aucun modèle ne les choisit.)\nPopularité : R7 — gagnants par rang (pool européen) — 1622 tirages ; étoiles les moins jouées : 12, 10, 11, 1.\nBudget : 196.70 € dépensés en 2026 sur 520 € (dont 24.20 € au Loto).\nCumul : 35 numéros trouvés sur 68 grilles (attendu 34.0, écart +1.0 ± 10.39) · mise 170.00 €, gains 35.49 € · partage observé ×1.02 sur 6 rang(s).\n\n⚠️ Claude ne prédit pas les tirages. Le hasard est sans mémoire. Aucune analyse ne garantit un gain. EV nette structurellement négative (de −1,9 € par grille à 17 M€ de jackpot à −0,5 € au plafond de 250 M€). Les écarts backtestés sont du bruit statistique, mesuré comme tel — méthodologie documentée, pas un oracle."
 }
